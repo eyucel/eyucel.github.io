@@ -1,5 +1,5 @@
 ---
 layout: page
-icon: fas fa-stream
+icon: fas fa-file
 order: 2
 ---
