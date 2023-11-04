@@ -1,10 +1,9 @@
 ---
 title: First Post
-date: 2023-11-03 16:29:17 +/-0500
-categories: [Statistics]
-tags: [sta235, logistic regression]     # TAG names should always be lowercase
+date: 2023-10-21 16:29:34 +/-0500
+categories: [Blog]
+tags: [writing]     # TAG names should always be lowercase
 ---
 
 
-An important concept to understand in logistic regression is the relationship between the log odds, odds and probability of an event. Recall that our most basic logistic regression models the log odds of an event as a linear function of the predictor variable.
-$$ \log \frac{p}{1-p} = \beta_0 + \beta_1 x $$
+Hello. Welcome to my personal website. I plan to host notes from my classes here.
