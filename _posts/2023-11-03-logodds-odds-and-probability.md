@@ -11,4 +11,4 @@ An important concept to understand in logistic regression is the relationship be
 
 $$ \log \frac{p}{1-p} = \beta_0 + \beta_1 x $$
 
-The right hand side of this equation is treated identically to what we know from classical regression. We can add multiple predictors, transformations of predictors, categorical predictors, interactions between predictors -- you name it.
+The right hand side of this equation is treated identically to what we know from classical regression. We can add multiple predictors, transformations of predictors, categorical predictors, interactions between predictors -- you name it. And, just as in our classic regression, a unit increase in $x$ results in a $\beta_1$ increase in the left hand side, which is now the _log odds_ rather than, say, income, or sales price.
