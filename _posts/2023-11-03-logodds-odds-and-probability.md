@@ -45,7 +45,10 @@ _Comparison of graphs of log odds, odds, and probability._
 Even, or 1:1 odds, correspond to a log odds of 0, since $\log(1)=0$. From our equation, we can compute that this occurs when $x=25$. Also from our equation, we know that each one unit change in $x$ increases the log odds by 0.4. The center plot shows the nonlinearity of the relationship between odds and $x$. Here, a one unit change in $x$ multiplies the odds by $e^{0.4}\approx 1.49$ or, put another way, increases them by 49%. It's easy to see how this leads to rapid growth in the odds ratio: from even odds at $x=25$ we get 1.49:1 odds when $x=26$, and 2.22:1 odds at $x=27$. The absolute difference continues to grow at an ever larger rate. Lastly, as described above, the graph of probability as a function of $x$ is S-shaped, with high probability associated with positive log odds and high odds, low probability associated with negative log odds and small (close to 0) odds, and 0.5 probability with even (1:1) odds and 0 log odds.
 
 ## Example: Good Credit/Bad Credit
-
+To follow along with this example, run the following command in R to load the data into your workspace.
+```
+banco <- read.csv('https://emyucel.com/sta235/banco.csv')
+```
 
 [^1]: Infinity over infinity+1 is almost, but not quite 1, and can never be greater than 1. Infinity+1 is also a great number for beating your sibling at "who can say the biggest number?"
 [^2]: Essentially zero over 1+essentially zero is essentially zero.
