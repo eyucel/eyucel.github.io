@@ -46,6 +46,7 @@ Even, or 1:1 odds, correspond to a log odds of 0, since $\log(1)=0$. From our eq
 
 ## Example: Good Credit/Bad Credit
 To follow along with this example, run the following command in R to load the data into your workspace.
+
 ```
 banco <- read.csv('https://emyucel.com/sta235/banco.csv')
 ```
