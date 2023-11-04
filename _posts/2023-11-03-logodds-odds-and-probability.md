@@ -40,7 +40,7 @@ This is definitely non-linear, but it does satisfy the things we need from a pro
 Let's take an example of the log odds represented by the equation
 $$ \log \frac{p}{1-p} = -10 + 0.4 x $$
 
-![Desktop View](/assets/img/logodds_odds_prob_comp_small.png){: w="700"}
+![Desktop View](/assets/img/logodds_odds_prob.svg){: w="700"}
 _Comparison of graphs of log odds, odds, and probability._
 Log odds of zero correspond to even or 1:1 odds, since $\log(1)=0$. In our log odds plot above on the left, this happens when $x=25$. Each one unit change in $x$ increases the log odds by 0.4. The center plot of the odds ratio shows the impact that the exponential function has. A one unit change in $x$ multiplies the odds by $e^{0.4}\approx 1.49$ or, put another way, increases them by 49%. It's easy to see how this leads to rapid growth in the odds ratio: from even odds at $x=25$ we get to 7.4:1 odds when $x=30$, a more than seven-fold increase. This increase corresponds to a jump in probability from 0.5 to 0.88.
 
