@@ -3,6 +3,7 @@ title: Log Odds, Odds, and Probability
 date: 2023-11-03 16:29:17 +/-0500
 categories: [Statistics]
 tags: [sta235, logistic regression]     # TAG names should always be lowercase
+math: true
 ---
 
 
