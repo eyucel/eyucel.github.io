@@ -67,5 +67,8 @@ Now we get into the good stuff! The graph of the log odds should look very famil
 
 Observe that older customers are more likely to have an account in bad standing when they have another line of credit than if they do not, while the opposite is true for younger customers. Age also has more of an impact on the likelihood of an account being in bad standing for those customers without another line of credit. This is apparent in the steeper slope of the log odds, and the central portion of the probability graph.
 
+## Conclusion
+Hopefully this has provided a bit of clarity on the relationship between log odds, odds, and probability. Understanding and being able to work freely in any of the three domains is a valuable skill to possess.  Don't hesitate to reach out with any questions you may have or any feedback you would like to give.
+
 [^1]: Infinity over infinity+1 is almost, but not quite 1, and can never be greater than 1. Infinity+1 is also a great number for beating your sibling at "Who can say the largest number?"
 [^2]: Essentially zero over 1+essentially zero is essentially zero.
