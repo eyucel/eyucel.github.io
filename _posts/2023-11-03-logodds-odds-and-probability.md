@@ -51,7 +51,7 @@ A bank has a list of customer accounts that are either in good or bad standing. 
 $$ \log \frac{P(\mathrm{Bad Standing})}{1-P(\mathrm{Bad Standing})} = 10.12 - 0.32(\mathrm{Age}) $$
 
 ![Desktop View](/assets/img/banco_logodds_odds_prob.svg){: w="700"}
-_Log odds, odds, and probability for our account in bad standing model._
+_Log odds, odds, and probability for our account in the bad standing model._
 This time our model has a negative coefficient on the independent variable, meaning that the log odds, odds, and probability of an account in bad standing all decrease as the account holder gets older. Approximately around the age of 32 does it become more likely that the individual has an account in good standing rather than in bad standing. For each year increase in age, the log odds decrease by 0.318 and the odds are multiplied by $e^{-0.318} \approx 0.73$ or equivalently, decrease by 27%.
 
 ## Example: Interactions Between Predictors
@@ -61,9 +61,11 @@ $$ \log \frac{P(\mathrm{Bad Standing})}{1-P(\mathrm{Bad Standing})} = 18.16 - 0.
 
 
 ![Desktop View](/assets/img/banco_int_logodds_odds_prob.svg){: w="700"}
-_Log odds, odds, and probability for our account in bad standing interaction model. Red represents no other line of credit, while blue represents another line of credit._
+_Log odds, odds, and probability for our account in the bad standing interaction model. Red represents no other line of credit, while blue represents another line of credit._
 
-Now we get into some spicy stuff! The graph of the log odds should look very familiar to someone who has studied interactions in linear regression, since the log odds are modeled with a linear relationship. The log odds for someone with another line of credit decrease at a slower rate as age increases than the log odds for someone without another line of credit, seen by slopes of -0.59 and -0.18, respectively. Due to the scale of the y-axis the graph of the odds is hard to parse, however, the two lines do indeed cross around 30 years of age, just as they do for the log odds and the probability. For those without another line of credit, the odds decrease by 45% ($e^{-0.59}-1\approx-0.45$) while for those with another line of credit, the odds only decrease by 16% ($e^{-0.18}-1\approx-0.16$) for each year increase in age. 
+Now we get into the good stuff! The graph of the log odds should look very familiar to someone who has studied interactions in linear regression, since the log odds are modeled with a linear relationship. The log odds for someone with another line of credit decrease at a slower rate as age increases than the log odds for someone without another line of credit, seen by slopes of -0.59 and -0.18, respectively. Due to the scale of the y-axis the graph of the odds is hard to parse, however, the two lines do indeed cross around 30 years of age, just as they do for the log odds and the probability. For those without another line of credit, the odds decrease by 45% $(e^{-0.59}-1\approx-0.45)$ for each year increase in age, while for those with another line of credit the odds only decrease by 16% $(e^{-0.18}-1\approx-0.16)$ for each year increase in age. 
+
+Observe that older customers are more likey to have an account in bad standing when they have another line of credit than if they do not, while the opposite is true for younger customers. Age also has more of an impact on the likelihood of an account being in bad standing for those customers without another line of credit. This is apparent in the steeper slope of the log odds, and the central portion of the probability graph.
 
 [^1]: Infinity over infinity+1 is almost, but not quite 1, and can never be greater than 1. Infinity+1 is also a great number for beating your sibling at "Who can say the largest number?"
 [^2]: Essentially zero over 1+essentially zero is essentially zero.
