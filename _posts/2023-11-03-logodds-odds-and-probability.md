@@ -52,7 +52,17 @@ $$ \log \frac{P(\mathrm{Bad Standing})}{1-P(\mathrm{Bad Standing})} = 10.12 - 0.
 
 ![Desktop View](/assets/img/banco_logodds_odds_prob.svg){: w="700"}
 _Log odds, odds, and probability for our account in the bad standing model._
-This time our model has a negative coefficient on the independent variable, meaning that the log odds, odds, and probability of an account in bad standing all decrease as the account holder gets older. Approximately around the age of 32 does it become more likely that the individual has an account in good standing rather than in bad standing. For each year increase in age, the log odds decrease by 0.318 and the odds are multiplied by $e^{-0.318} \approx 0.73$ or equivalently, decrease by 27%.
+This time our model has a negative coefficient on the independent variable, meaning that the log odds, odds, and probability of an account in bad standing all decrease as the account holder gets older. Approximately around the age of 32 does it become more likely that the individual has an account in good standing rather than in bad standing. For each year increase in age, the log odds decrease by 0.318 and the odds are multiplied by $e^{-0.318} \approx 0.73$ or equivalently, decrease by 27%. The table below provides a good overview of the absolute and relative differences between ages. 
+
+| age | logodds |  diff  |  ratio |  odds |  diff  | ratio | probability |  diff  | ratio |
+|----:|--------:|-------:|-------:|------:|-------:|------:|------------:|-------:|------:|
+| 30  |   0.520 |        |        | 1.682 |        |       |       0.627 |        |       |
+| 31  |   0.200 | -0.320 |  0.385 | 1.221 | -0.461 | 0.726 |       0.550 | -0.077 | 0.877 |
+| 32  |  -0.120 | -0.320 | -0.600 | 0.887 | -0.334 | 0.726 |       0.470 | -0.080 | 0.855 |
+| 33  |  -0.440 | -0.320 |  3.667 | 0.644 | -0.243 | 0.726 |       0.392 | -0.078 | 0.833 |
+| 34  |  -0.760 | -0.320 |  1.727 | 0.468 | -0.176 | 0.726 |       0.319 | -0.073 | 0.813 |
+
+The columns `logodds`, `odds`, and `probability` are the predicted values for the age given in the leftmost column. The `diff` column is the difference between the current row and previous row for the preceding prediction, be it the log odds, odds, or probability. The `ratio` column is the ratio of the current row divided by the previous row for either the log odds, odds, or probability. Things to note: the log odds have a constant _difference_—this is due to the linear nature of the log odds, and the value is equal to the slope of `age`. Note that the ratio has no discernible pattern. Meanwhile, the odds have an ever decreasing difference, but now a constant _ratio_. This ratio is exactly equal to the exponentiated coefficient of the `age` slope. Lastly, the probability has neither a constant difference nor ratio.
 
 ## Example: Interactions Between Predictors
 Consider the previous example but now we add in as an additional predictor whether or not the customer has another line of credit, and an interaction between this categorical predictor and their age. The log odds are modeled by the relation:
