@@ -67,15 +67,23 @@ The columns `logodds`, `odds`, and `probability` are the predicted values for th
 ## Example: Interactions Between Predictors
 Consider the previous example but now we add in as an additional predictor whether or not the customer has another line of credit, and an interaction between this categorical predictor and their age. The log odds are modeled by the relation:
 
-$$ \log \frac{P(\mathrm{Bad Standing})}{1-P(\mathrm{Bad Standing})} = 18.16 - 0.59(\mathrm{Age})- 12.19(\mathrm{OtherCredit}) + 0.41(\mathrm{Age})(\mathrm{OtherCredit}) $$
+$$ \log \frac{P(\mathrm{Bad})}{1-P(\mathrm{Bad})} = 18.16 - 0.59(\mathrm{Age})- 12.19(\mathrm{OtherCredit}) + 0.41(\mathrm{Age})(\mathrm{OtherCredit}) $$
 
 
 ![Desktop View](/assets/img/banco_int_logodds_odds_prob.svg){: w="700"}
 _Log odds, odds, and probability for our account in the bad standing interaction model. Red represents no other line of credit, while blue represents another line of credit._
 
-Now we get into the good stuff! The graph of the log odds should look very familiar to someone who has studied interactions in linear regression, since the log odds are modeled with a linear relationship. The log odds for someone with another line of credit decrease at a slower rate as age increases than the log odds for someone without another line of credit, seen by slopes of -0.59 and -0.18, respectively. Due to the scale of the y-axis the graph of the odds is hard to parse, however, the two lines do indeed cross around 30 years of age, just as they do for the log odds and the probability. For those without another line of credit, the odds decrease by 45% $(e^{-0.59}-1\approx-0.45)$ for each year increase in age, while for those with another line of credit the odds only decrease by 16% $(e^{-0.18}-1\approx-0.16)$ for each year increase in age. 
+Now we get into the good stuff! The graph of the log odds should look very familiar to someone who has studied interactions in linear regression, since the log odds are modeled with a linear relationship. For customers without another line of credit, the log odds of an account being in bad standing are:
 
-Observe that older customers are more likely to have an account in bad standing when they have another line of credit than if they do not, while the opposite is true for younger customers. Age also has more of an impact on the likelihood of an account being in bad standing for those customers without another line of credit. This is apparent in the steeper slope of the log odds, and the central portion of the probability graph.
+$$ \log \frac{P(\mathrm{Bad})}{1-P(\mathrm{Bad})} = 18.16 - 0.59(\mathrm{Age}), $$
+
+while for those with another line of credit we can combine like terms:
+
+$$ \log \frac{P(\mathrm{Bad})}{1-P(\mathrm{Bad})} = 5.97 - 0.18(\mathrm{Age}).$$
+
+The log odds for someone with another line of credit decrease at a slower rate as age increases than the log odds for someone without another line of credit, seen by slopes of -0.59 and -0.18, respectively. Due to the scale of the y-axis the graph of the odds is hard to parse, however, the two lines do indeed cross around 30 years of age, just as they do for the log odds and the probability. For those without another line of credit, the odds decrease by 45% $(e^{-0.59}-1\approx-0.45)$ for each year increase in age, while for those with another line of credit the odds only decrease by 16% $(e^{-0.18}-1\approx-0.16)$ for each year increase in age. 
+
+Observe that older customers are more likely to have an account in bad standing when they have another line of credit than if they do not, while the opposite is true for younger customers. Age also has more of an impact on the likelihood of an account being in bad standing for those customers without another line of credit. This is apparent in the steeper slope of the log odds, and the central portion of the probability graph. 
 
 ## Conclusion
 Hopefully this has provided a bit of clarity on the relationship between log odds, odds, and probability. Understanding and being able to work freely in any of the three domains is a valuable skill to possess.  Don't hesitate to reach out with any questions you may have or any feedback you would like to give.
