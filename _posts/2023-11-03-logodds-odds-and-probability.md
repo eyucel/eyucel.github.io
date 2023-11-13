@@ -81,6 +81,7 @@ $$ \begin{align*}
                                                & = 18.16 - 0.59(\mathrm{Age}), 
 \end{align*}
 $$
+
 while for those with another line of credit we can combine like terms:
 
 $$
