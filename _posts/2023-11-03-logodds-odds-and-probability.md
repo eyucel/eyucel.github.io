@@ -75,6 +75,7 @@ $$ \log \frac{P(\mathrm{Bad})}{1-P(\mathrm{Bad})} = 18.16 - 0.59(\mathrm{Age})- 
 _Log odds, odds, and probability for our account in the bad standing interaction model. Red represents no other line of credit, while blue represents another line of credit._
 
 Now we get into the good stuff! The graph of the log odds should look very familiar to someone who has studied interactions in linear regression, since the log odds are modeled with a linear relationship. For customers without another line of credit, the log odds of an account being in bad standing are:
+
 $$ \begin{align*}
 \log \frac{P(\mathrm{Bad})}{1-P(\mathrm{Bad})} & = 18.16 - 0.59(\mathrm{Age})- 12.19(\mathrm{OtherCredit}) + 0.41(\mathrm{Age})(\mathrm{OtherCredit}) \\
                                                & = 18.16 - 0.59(\mathrm{Age})- 12.19(0) + 0.41(\mathrm{Age})(0) \\
