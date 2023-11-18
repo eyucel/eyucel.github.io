@@ -1,5 +1,5 @@
 ---
-title: Log Odds, Odds, and Probability
+title: Regression Discontinuity
 date: 2023-11-17 13:15:00 +/-0500
 categories: [Statistics]
 tags: [sta235, regression discontinuity design, rdd, causal inference]     # TAG names should always be lowercase
@@ -8,7 +8,11 @@ read_time: false
 ---
 
 ## Regression Discontinuity
-The idea behind regression discontinuity is rather simple: given some treatment that is assigned at some cutoff—people on one side of this cutoff get the treatment while those on the other side do not, we can compare people just on either side of that cutoff. These people should not be that different, consider the case for example, people who are 1 minute from their 65th birthday and those who are 1 minute into their 65th birthday. Aside from 
+The idea behind regression discontinuity is rather simple: given some treatment that is assigned at some cutoff—people on one side of this cutoff get the treatment while those on the other side do not, we can compare people _just_ on either side of that cutoff. These people should not be that different, and whatever differences we do observe, we'd like to attribute to the treatment. To make things easier we'll introduce some terminology that is common when talking about regression discontinuity:
+* Running Variable: Also called the forcing variable, this variable determines whether or not you are treated. For example, students who score below a 70 on an entrance exam are assigned a tutor for the duration of the semester. Here, the running variable is the score on the entrance exam, since that is what determines assignment to the treatment group.
+* Cutoff: The value of the running variable to use in determining the treatment group. In the example above, the cutoff was the entrance exam score of 70. Below the cutoff you get a tutor, above the cutoff you don't.
+* Bandwidth: This determines how much around the cutoff we want to consider in our analysis. Students who score right around 70 are probably similar, as are those between 69 and 71. But using a larger bandwidth and moving further away may introduce differences from causes other than the cutoff.
+
 $$ \underbrace{\log \frac{p}{1-p}}_{y} = \beta_0 + \beta_1 x $$
 
 The right hand side of this equation is treated identically to what we know from classical regression. We can add multiple predictors, transformations of predictors, categorical predictors, interactions between predictors -- you name it. And, just as in our classic regression, a unit increase in $x$ results in a $\beta_1$ increase in $y$, which for logistic regression is the _log odds_ rather than, say, income or sales price. However, the log odds are not a very intuitive measure and fortunately for us, the transformation from log odds to odds is rather simple--we just exponentiate them! Our equation for the odds becomes:
