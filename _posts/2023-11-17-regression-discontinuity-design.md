@@ -13,4 +13,9 @@ The idea behind regression discontinuity is rather simple: given some treatment 
 * Cutoff: The value of the running variable to use in determining the treatment group. In the example above, the cutoff was the entrance exam score of 70. Below the cutoff you get a tutor, above the cutoff you don't.
 * Bandwidth: This determines how much around the cutoff we want to consider in our analysis. Students who score right around 70 are likely pretty similar, as are those who score between 69 and 71. But using a larger bandwidth and moving further away from the cutoff may introduce differences from factors other than the treatment.
 
-What we can do with 
+When analyzing the results, we need to be careful of what conclusions we draw. In the tutoring example, we can really only be confident in estimating the effect on students who score around 70. We wouldn't be able to say that the tutoring would have the same effect on students who scored 90 on the entrance exam. This holds true in the opposite direction as well. Though students who score 50s on the entrance exam may benefit from the tutoring, and if anything, need it more, we aren't able to precisely pin down what the effect is since we are analyzing those who score around 70 points.
+
+## Estimating an Effect
+Let us take a closer look at the tutoring example and see how we can use regression discontinuity to estimate a treatment effect.
+![Desktop View](/assets/img/tutoring_scatter.svg){: w="700"}
+_A plot of entrance exam scores against exit exam scores. Those who scored below a 70 on the entrance exam were assigned a tutor for the semester._
