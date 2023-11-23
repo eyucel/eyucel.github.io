@@ -20,11 +20,28 @@ Let us take a closer look at the tutoring example and see how we can use regress
 ![tutoring scatter](/assets/img/tutoring_scatter.svg){: w="700"}
 _A plot of entrance exam scores against exit exam scores. Those who scored below a 70 on the entrance exam were assigned a tutor for the semester._
 
-How can we predict values around the cutoff? There are numerous ways to do so but one of the easiest ways is linear regression. We can fit a (discontinuous) line to the data and then use it to estimate the jump. We center our running variable at the cutoff by subtracting the cutoff—this means that an entrance exam score of 70 has a centered entrance exam score of 0, an entrance exam score of 80 has a centered entrance exam score of 10, an entrance exam score of 65 has a centered score of -5, and so on. The reason for doing this will become clear in just a moment. We also create a dummy variable for the treatment, which takes the value one when the centered score is negative, and the value zero when the centered score is positive, corresponding to when the entrance exam score is below 70 and above 70, respectively.
+How can we predict values around the cutoff? There are numerous ways to do so but one of the easiest ways is linear regression. We can fit a (discontinuous) line to the data and then use it to estimate the jump. First, we center our running variable at the cutoff by subtracting the value of the cutoff—this means that an entrance exam score of 70 has a *centered* entrance exam score of 0, an entrance exam score of 80 has a *centered* entrance exam score of 10, an entrance exam score of 65 has a *centered* score of -5, and so on. The reason for doing this will become clear in just a moment. We also create a dummy variable for the treatment, which takes the value 1 when the centered score is negative, and the value 0 when the centered score is positive, corresponding to when the un-centered entrance exam score is below 70 and above 70, respectively.
 
 
 ![tutoring scatter fitted](/assets/img/tutoring_scatter_fitted.svg){: w="700"}
 _A plot of entrance exam scores against exit exam scores. Those who scored below a 70 on the entrance exam were assigned a tutor for the semester. A linear fit with equal slopes was applied._
 
+The difference in the lines at the cutoff of 70 is the estimate of the effect we are looking for. Here's how we would do that in _R_. Assume `tutoring` is our original dataset with entrance exam and exit exam scores.
 
+```
+tutoring <- tutoring %>% mutate(centered_entrance = entrance_exam-70,
+                                tutor = ifelse(centered_entrance<0, 1, 0)
+                                )
+rd_model <- lm(exit_exam~centered_entrance+tutor,data=tutoring)
+summary(rd_model)
+```
+We build the model using the `centered_entrance` and `tutor` variables we created. This results in the following estimated equation for exit exam score:
+$$ 
+\widehat{\mathrm{exit\_exam}} = 59.34 + 0.51(\mathrm{centered\_entrance}) + 10.97 (\mathrm{tutor})
+$$
 
+What does the intercept of 59.34 represent here? It is the value of `exit_exam` when all our independent variables are 0, which means that a student that scores a 70 on the entrance exam (equivalent to a centered entrance exam score of 0) and did not receive tutoring is predicted to score around 59.34 on the exit exam. If that same student happened to get a tutor[^1], then their exit exam score is expected to increase by 10.97 points! The value of the coefficient of `tutor` is the estimated effect. The coefficient on `centered_entrance` tells us by how much the exit exam score is expected to change for each additional point increase in entrance exam score holding the value of `tutor` constant. Because there is no interaction term in the model that we fit, the slope is the same for both sides of the discontinuity. 
+
+Had we instead used the entrance exam score in our model instead of the _centered_ score, then the intercept would represent the exit exam score of an individual who scores a 0 on the entrance exam and does not receive tutoring. This is meaningless in the context of this problem, and we would need to substitute in values of 70 to estimate the effect at the cutoff. By using the centered running variable, we get all of our estimates for "free".
+
+[^1] Technically, you cannot score a 70 and both get a tutor and not get a tutor. So we can think of this as comparing a student _just_ over 70 and one _just_ below 70.
