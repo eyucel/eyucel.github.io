@@ -1,6 +1,6 @@
 ---
 title: Regression Discontinuity
-date: 2023-11-17 13:15:00 +/-0500
+date: 2023-11-23 00:54:00 +/-0500
 categories: [Statistics]
 tags: [sta235, regression discontinuity design, rdd, causal inference]     # TAG names should always be lowercase
 math: true
