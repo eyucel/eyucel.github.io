@@ -23,7 +23,7 @@ _A plot of entrance exam scores against exit exam scores. Those who scored below
 How can we predict values around the cutoff? There are numerous ways to do so but one of the easiest ways is linear regression. We can fit a (discontinuous) line to the data and then use it to estimate the jump. First, we center our running variable at the cutoff by subtracting the value of the cutoff—this means that an entrance exam score of 70 has a *centered* entrance exam score of 0, an entrance exam score of 80 has a *centered* entrance exam score of 10, an entrance exam score of 65 has a *centered* score of -5, and so on. The reason for doing this will become clear in just a moment. We also create a dummy variable for the treatment, which takes the value 1 when the centered score is negative, and the value 0 when the centered score is positive, corresponding to when the un-centered entrance exam score is below 70 and above 70, respectively.
 
 
-![tutoring scatter fitted](/assets/img/tutoring_scatter_fitted.svg){: w="700"}
+![tutoring scatter fitted](/assets/img/tutoring_fitted_equal.svg){: w="700"}
 _A plot of entrance exam scores against exit exam scores. Those who scored below a 70 on the entrance exam were assigned a tutor for the semester. A linear fit with equal slopes was applied._
 
 The difference in the lines at the cutoff of 70 is the estimate of the effect we are looking for. Here's how we would do that in _R_. Assume `tutoring` is our original dataset with entrance exam and exit exam scores.
