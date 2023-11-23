@@ -36,6 +36,7 @@ rd_model <- lm(exit_exam~centered_entrance+tutor,data=tutoring)
 summary(rd_model)
 ```
 We build the model using the `centered_entrance` and `tutor` variables we created. This results in the following estimated equation for exit exam score:
+
 $$ 
 \widehat{\mathrm{exit\_exam}} = 59.34 + 0.51(\mathrm{centered\_entrance}) + 10.97 (\mathrm{tutor})
 $$
@@ -44,4 +45,16 @@ What does the intercept of 59.34 represent here? It is the value of `exit_exam` 
 
 Had we instead used the entrance exam score in our model instead of the _centered_ score, then the intercept would represent the exit exam score of an individual who scores a 0 on the entrance exam and does not receive tutoring. This is meaningless in the context of this problem, and we would need to substitute in values of 70 to estimate the effect at the cutoff. By using the centered running variable, we get all of our estimates for "free".
 
-[^1] Technically, you cannot score a 70 and both get a tutor and not get a tutor. So we can think of this as comparing a student _just_ over 70 and one _just_ below 70.
+[^1]: Technically, you cannot score a 70 and both get a tutor and not get a tutor. So we can think of this as comparing a student _just_ over 70 and one _just_ below 70.
+
+## Adding Flexibility
+In the previous section we assumed the slopes of the lines to be equal on both sides of the cutoff. Fitting a model with an interaction between the centered entrance score and tutoring we get an equation not all that different from our equal slopes model.
+
+$$ 
+\widehat{\mathrm{exit\_exam}} = 59.34 + 0.51(\mathrm{centered\_entrance}) + 10.97 (\mathrm{tutor}) + 0.002(\mathrm{centered\_entrance}) (\mathrm{tutor})
+$$
+
+Our read of the effect is done in the exact same way: by looking at the coefficient on `tutor`. The interaction effect will now cause the slopes to be _different_ on either side of the cutoff. In the model with interactions, students without tutoring are predicted to score 0.51 points higher on the exit exam score for every increase in entrance exam score, while those who receive a tutor are predicted to score 0.512 points higher. This may seem like an inconsequential difference, and indeed if we were to look at the summary output we would see that the interaction term is not statistically significant. Looking at plot of the fitted values shows imperceptible differences. The estimated effect size remains the same at 10.97.
+
+![tutoring scatter fitted interaction](/assets/img/tutoring_fitted_interaction.svg){: w="700"}
+_A plot of entrance exam scores against exit exam scores. Those who scored below a 70 on the entrance exam were assigned a tutor for the semester. A linear fit with slopes allowed to differ on either side of the cutoff was applied. It is hard to see the difference between the two models._
