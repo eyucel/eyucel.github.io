@@ -79,7 +79,7 @@ Observe that the line on the right side of the cutoff has a steeper slope of 0.7
 ## Even More Flexibility
 With a more exaggerated example using synthetic data, we can see how a more flexible model might capture the true effect more closely. The first two linear models seen in the top half of the plot are using the full range of data to estimate the values around the cutoff, but because the relationship between the outcome and the running variable is nonlinear—the values close to the cutoff are rather biased.  
 
-![tutoring scatter fitted interaction short bandwidth](/assets/img/tutoring_fitted_interaction_bw5.svg){: w="700"}
+![flexibility 2 by 2](/assets/img/flexibility_2_by_2.svg){: w="700"}
 _Clockwise from top left: No interaction model, model with interactions, model with interactions and narrow bandwidth, model with 2nd order polynomial fit._
 
 The model in the bottom left is using a 2nd degree polynomial with an interaction, while the one in bottom right is using a linear model but with a narrower bandwidth. The polynomial model can capture the nonlinearity and the model with a narrow bandwidth suffers less from a linear approximation to the data relative to the model with the full range of data.
