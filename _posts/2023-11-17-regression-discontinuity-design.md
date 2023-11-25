@@ -64,7 +64,7 @@ _A plot of entrance exam scores against exit exam scores. Those who scored below
 
 We can go one step further and address the bandwidth. Before we used the entire set of data to estimate our regression line. There may be certain factors or attributes that bias our estimates the further away we go from the cutoff, neccesitating a need to reduce our bandwidth. Using our tutoring example, let's reduce the bandwidth to 5, meaning we only consider scores between 65 and 75 for estimating the effect.
 
-![tutoring scatter fitted interaction](/assets/img/tutoring_fitted_interaction_bw5.svg){: w="700"}
+![tutoring scatter fitted interaction short bandwidth](/assets/img/tutoring_fitted_interaction_bw5.svg){: w="700"}
 _A plot of entrance exam scores against exit exam scores. Those who scored below a 70 on the entrance exam were assigned a tutor for the semester. A linear fit with slopes allowed to differ on either side of the cutoff was applied with a bandwidth of 5. The difference in slopes of the two lines is now apparent._
 
 $$ 
@@ -76,5 +76,10 @@ $$
 
 Observe that the line on the right side of the cutoff has a steeper slope of 0.72 compared to that of the slope on the left side of the cutoff, which has a slope of only 0.34 (0.72-0.38). The effect of tutoring on the exit exam score has also fallen from 10.97 in our full data models to only 10.1 in our smaller bandwidth model. 
 
-## More Flexibility
-Coming soon, more plots illustrating the benefits and pitfalls of bandwidth. 
+## Even More Flexibility
+With a more exaggerated example using synthetic data, we can see how a more flexible model might capture the true effect more closely. The first two linear models seen in the top half of the plot are using the full range of data to estimate the values around the cutoff, but because the relationship between the outcome and the running variable is nonlinear—the values close to the cutoff are rather biased.  
+
+![tutoring scatter fitted interaction short bandwidth](/assets/img/tutoring_fitted_interaction_bw5.svg){: w="700"}
+_Clockwise from top left: No interaction model, model with interactions, model with interactions and narrow bandwidth, model with 2nd order polynomial fit._
+
+The model in the bottom left is using a 2nd degree polynomial with an interaction, while the one in bottom right is using a linear model but with a narrower bandwidth. The polynomial model can capture the nonlinearity and the model with a narrow bandwidth suffers less from a linear approximation to the data relative to the model with the full range of data.
