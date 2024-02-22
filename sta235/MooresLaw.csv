@@ -1,0 +1,139 @@
+index,processor,year,transistors,designer,process_nm,area_mm2
+1,TMS 1000,1971,2300,Intel,"10,000",12
+2,Intel 4004,1972,3500,Intel,"10,000",14
+3,Intel 8008,1974,8000,Texas Instruments,"8,000",
+4,MOS Technology 6502,1974,4100,Motorola,"6,000",16
+5,Motorola 6800,1974,4500,Intel,"6,000",20
+6,Intel 8080,1974,5000,RCA,"5,000",27
+7,RCA 1802,1975,3510,MOS Technology,"8,000",21
+8,Intel 8085,1976,6500,Intel,"3,000",20
+9,Zilog Z80,1976,8500,Zilog,"4,000",18
+10,Motorola 6809,1978,9000,Motorola,"5,000",21
+11,Intel 8086,1978,29000,Intel,"3,000",33
+12,Intel 8088,1979,29000,Intel,"3,000",33
+13,WDC 65C02,1979,68000,Motorola,"3,500",44
+14,Intel 80186,1981,11500,WDC,"3,000",6
+15,Motorola 68000,1982,55000,Intel,"3,000",60
+16,Intel 80286,1982,134000,Intel,"1,500",49
+17,WDC 65C816,1983,22000,WDC,"3,000",9
+18,Motorola 68020,1984,190000,Motorola,"2,000",85
+19,Intel 80386,1985,275000,Intel,"1,500",104
+20,ARM 1,1985,25000,Acorn,"3,000",50
+21,Novix NC4016,1985,16000,Harris Corporation,"3,000",
+22,ARM 2,1986,30000,Acorn,"2,000",30
+23,68030,1987,273000,Motorola,800,102
+24,TI Explorer's 32-bit Lisp machine chip,1987,553000,Texas Instruments,"2,000",
+25,DEC WRL MultiTitan,1988,180000,DEC WRL,"1,500",61
+26,Intel i960,1988,250000,Intel,600,
+27,Intel 80486,1989,1180235,Intel,"1,000",173
+28,ARM 3,1989,310000,Acorn,"1,500",87
+29,68040,1990,1200000,Motorola,650,152
+30,R4000,1991,1350000,MIPS,"1,000",213
+31,ARM 6,1991,35000,ARM,,
+32,Pentium,1993,3100000,Intel,800,294
+33,ARM700,1994,578977,ARM,,
+34,68060,1994,2500000,Motorola,600,218
+35,SA-110,1995,2500000,Acorn/DEC/Apple,350,50
+36,ARM 9TDMI,1995,5500000,Intel,500,307
+37,Pentium Pro,1996,4300000,AMD,500,251
+38,AMD K5,1997,7500000,Intel,350,195
+39,Pentium II Klamath,1997,8800000,AMD,350,162
+40,Pentium II Deschutes,1998,7500000,Intel,250,113
+41,AMD K6,1999,111000,Acorn,350,4
+42,Pentium III Katmai,1999,9500000,Intel,250,128
+43,Pentium III Coppermine,1999,27400000,Intel,180,180
+44,Pentium II Mobile Dixon,1999,21300000,AMD,250,118
+45,Pentium III Tualatin,1999,22000000,AMD,250,184
+46,AMD K6-III,2000,21000000,Intel,180,80
+47,AMD K7,2000,42000000,Intel,180,217
+48,Pentium 4 Willamette,2001,45000000,Intel,130,81
+49,Pentium 4 Northwood,2002,55000000,Intel,130,145
+50,Pentium 4 Prescott,2002,220000000,Intel,180,421
+51,Pentium 4 Prescott-2M,2003,54300000,AMD,130,101
+52,Pentium 4 Cedar Mill,2003,105900000,AMD,130,193
+53,Pentium D Smithfield,2003,410000000,Intel,130,374
+54,Pentium D Presler,2004,112000000,Intel,90,110
+55,Atom,2004,592000000,Intel,130,432
+56,Barton,2005,169000000,Intel,90,143
+57,AMD K8,2005,228000000,Intel,90,206
+58,Itanium 2 McKinley,2006,184000000,Intel,65,90
+59,Cell,2006,362000000,Intel,65,162
+60,Core 2 Duo Conroe,2006,241000000,Sony/IBM/Toshiba,90,221
+61,Core 2 Duo Allendale,2006,291000000,Intel,65,143
+62,Itanium 2 Madison 6M,2006,1700000000,Intel,90,596
+63,"Atom ""Medfield""",2007,169000000,Intel,65,111
+64,AMD K10 quad-core 2M L3,2007,463000000,AMD,65,283
+65,ARM Cortex-A9,2007,26000000,ARM,45,31
+66,Core 2 Duo Wolfdale 3M,2007,411000000,Intel,45,107
+67,Itanium 2 with 9 MB cache,2007,789000000,IBM,65,341
+68,Core 2 Duo Wolfdale,2008,47000000,Intel,45,24
+69,Core i7 (Quad),2008,230000000,Intel,45,83
+70,AMD K10 quad-core 6M L3,2008,731000000,Intel,45,263
+71,POWER6,2008,758000000,AMD,45,258
+72,Six-core Opteron 2400,2008,1900000000,Intel,45,503
+73,16-core SPARC T3,2009,904000000,AMD,45,346
+74,"Apple A7 (dual-core ARM64 ""mobile SoC"")",2010,1000000000,Sun/Oracle,40,377
+75,Quad-core + GPU Core i7,2010,1170000000,Intel,32,240
+76,Six-core Core i7 (Gulftown),2010,1200000000,IBM,45,567
+77,8-core POWER7 32M L3,2010,1400000000,IBM,45,512
+78,8-core AMD Bulldozer,2010,2000000000,Intel,65,699
+79,Quad-core + GPU AMD Trinity,2010,2300000000,Intel,45,684
+80,Quad-core z196[23],2011,1160000000,Intel,32,216
+81,Quad-core + GPU Core i7 Ivy Bridge,2011,2270000000,Intel,32,434
+82,Quad-core + GPU Core i7 Haswell,2011,2600000000,Intel,32,512
+83,Dual-core Itanium 2,2012,432000000,Intel,32,64
+84,Quad-core + GPU GT2 Core i7 Skylake K,2012,1200000000,AMD,32,315
+85,Six-core Core i7 Ivy Bridge E,2012,1303000000,AMD,32,246
+86,Dual-core + GPU Iris Core i7 Broadwell-U,2012,1400000000,Intel,22,160
+87,Six-core Xeon 7400,2012,2100000000,IBM,32,567
+88,Quad-core Itanium Tukwila,2012,2750000000,IBM,32,597
+89,"Apple A8 (dual-core ARM64 ""mobile SoC"")",2012,3100000000,Intel,32,544
+90,8-core POWER7+ 80 MB L3 cache,2012,5000000000,Intel,22,720
+91,Six-core Core i7/8-core Xeon E5 (Sandy Bridge-E/EP),2013,1000000000,Apple,28,102
+92,8-core Xeon Nehalem-EX,2013,1860000000,Intel,22,256
+93,8-core Core i7 Haswell-E,2013,4200000000,IBM,22,650
+94,10-core Xeon Westmere-EX,2013,5000000000,Microsoft/AMD,28,363
+95,Six-core zEC12,2014,1400000000,Intel,22,177
+96,"Apple A8X (tri-core ARM64 ""mobile SoC"")",2014,2000000000,Apple,20,89
+97,"Qualcomm Snapdragon 835 (octa-core ARM64 ""mobile SoC"")",2014,2600000000,Intel,22,355
+98,8-core Itanium Poulson,2014,3000000000,Apple,20,128
+99,10-core Core i7 Broadwell-E,2014,4310000000,Intel,22,541
+100,"Apple A10 Fusion (quad-core ARM64 ""mobile SoC"")",2014,5560000000,Intel,22,661
+101,IBM z13,2015,1750000000,Intel,14,122
+102,12-core POWER8,2015,1900000000,Intel,14,133
+103,"Apple A11 Bionic (hexa-core ARM64 ""mobile SoC"")",2015,3990000000,IBM,22,678
+104,15-core Xeon Ivy Bridge-EX,2015,7100000000,IBM,22,678
+105,8-core Ryzen,2015,10000000000,Oracle,20,
+106,61-core Xeon Phi,2016,3000000000,Qualcomm,10,
+107,Xbox One main SoC,2016,3200000000,Intel,14,246
+108,18-core Xeon Haswell-E5,2016,3300000000,Apple,16,125
+109,IBM z14,2016,7200000000,Intel,14,456
+110,Xbox One X (Project Scorpio) main SoC,2017,4300000000,Apple,10,89
+111,IBM z13 Storage Controller,2017,4800000000,AMD,14,192
+112,22-core Xeon Broadwell-E5,2017,6100000000,IBM,14,696
+113,POWER9,2017,7000000000,Microsoft/AMD,16,360
+114,IBM z14 Storage Controller,2017,8000000000,IBM,14,695
+115,32-core SPARC M7,2017,9700000000,IBM,14,696
+116,32-core AMD Epyc,2017,19200000000,AMD,14,4
+117,"HiSilicon Kirin 710 (octa-core ARM64 ""mobile SoC"", SIMD, caches)",2018,5500000000,Huawei,12,
+118,"Apple A12 Bionic (hexa-core ARM64 ""mobile SoC"",SIMD, caches)",2018,6900000000,Apple,7,83.27
+119,"HiSilicon Kirin 980 (octa-core ARM64 ""mobile SoC"", SIMD, caches)",2018,6900000000,Huawei,7,74.13
+120,"Qualcomm Snapdragon 8cx / SCX8180 (octa-core ARM64 ""mobile SoC"", SIMD, caches)",2018,8500000000,Qualcomm,7,112
+121,"Qualcomm Snapdragon 855 (octa-core 64/32-bit ARM64 ""mobile SoC"", SIMD, caches)",2019,6700000000,Qualcomm,7,73
+122,"Qualcomm Snapdragon 865 (octa-core 64/32-bit ARM64 ""mobile SoC"", SIMD, caches)",2020,10300000000,Qualcomm,7,83.54
+123,"Apple A12X Bionic (octa-core 64/32-bit ARM64 ""mobile SoC"", SIMD, caches)",2018,10000000000,Apple,7,122
+124,"Fujitsu A64FX (64/32-bit, SIMD, caches)",2018,8786000000,Fujitsu,7,
+125,Tegra Xavier SoC (64/32-bit),2018,9000000000,Nvidia,12,350
+126,"AMD Ryzen 7 3700X (64-bit, SIMD, caches, I/O die)",2019,5990000000,AMD,7,199
+127,HiSilicon Kirin 990 4G,2019,8000000000,Huawei,7,90
+128,"Apple A13 (hexa-core 64-bit ARM64 ""mobile SoC"", SIMD, caches)",2019,8500000000,Apple,7,98.48
+129,"AMD Ryzen 9 3900X (64-bit, SIMD, caches, I/O die)",2019,9890000000,AMD,7,273
+130,HiSilicon Kirin 990 5G,2019,10300000000,Huawei,7,113.31
+131,"AWS Graviton2 (64-bit, 64-core ARM-based, SIMD, caches)",2019,30000000000,Amazon,7,
+132,"AMD Epyc Rome (64-bit, SIMD, caches)",2019,39540000000,AMD,7,1008
+133,"TI Jacinto TDA4VM (ARM A72, DSP, SRAM)",2020,3500000000 ,Texas Instruments,16,
+134,"Apple A14 Bionic (hexa-core 64-bit ARM64 ""mobile SoC"", SIMD, caches)",2020,11800000000,Apple,5,88
+135,"Apple M1 (octa-core 64-bit ARM64 SoC, SIMD, caches)",2020,16000000000,Apple,5,119
+136,HiSilicon Kirin 9000,2020,15300000000,Huawei,5,114
+137,Apple A15,2021,15000000000,Apple,5,
+138,"AMD Ryzen 7 5800H (64-bit, SIMD, caches, I/O and GPU)",2021,10700000000,AMD,5,180
