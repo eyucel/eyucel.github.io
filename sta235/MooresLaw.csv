@@ -65,7 +65,7 @@ index,processor,year,transistors,designer,process_nm,area_mm2
 64,AMD K10 quad-core 2M L3,2007,463000000,AMD,65,283
 65,ARM Cortex-A9,2007,26000000,ARM,45,31
 66,Core 2 Duo Wolfdale 3M,2007,411000000,Intel,45,107
-67,Itanium 2 with 9 MB cache,2007,789000000,IBM,65,341
+67,Itanium 2 with 9MB cache,2007,789000000,IBM,65,341
 68,Core 2 Duo Wolfdale,2008,47000000,Intel,45,24
 69,Core i7 (Quad),2008,230000000,Intel,45,83
 70,AMD K10 quad-core 6M L3,2008,731000000,Intel,45,263
@@ -88,7 +88,7 @@ index,processor,year,transistors,designer,process_nm,area_mm2
 87,Six-core Xeon 7400,2012,2100000000,IBM,32,567
 88,Quad-core Itanium Tukwila,2012,2750000000,IBM,32,597
 89,"Apple A8 (dual-core ARM64 ""mobile SoC"")",2012,3100000000,Intel,32,544
-90,8-core POWER7+ 80 MB L3 cache,2012,5000000000,Intel,22,720
+90,8-core POWER7+ 80MB L3 cache,2012,5000000000,Intel,22,720
 91,Six-core Core i7/8-core Xeon E5 (Sandy Bridge-E/EP),2013,1000000000,Apple,28,102
 92,8-core Xeon Nehalem-EX,2013,1860000000,Intel,22,256
 93,8-core Core i7 Haswell-E,2013,4200000000,IBM,22,650
@@ -115,25 +115,24 @@ index,processor,year,transistors,designer,process_nm,area_mm2
 114,IBM z14 Storage Controller,2017,8000000000,IBM,14,695
 115,32-core SPARC M7,2017,9700000000,IBM,14,696
 116,32-core AMD Epyc,2017,19200000000,AMD,14,4
-117,"HiSilicon Kirin 710 (octa-core ARM64 ""mobile SoC"", SIMD, caches)",2018,5500000000,Huawei,12,
-118,"Apple A12 Bionic (hexa-core ARM64 ""mobile SoC"",SIMD, caches)",2018,6900000000,Apple,7,83.27
-119,"HiSilicon Kirin 980 (octa-core ARM64 ""mobile SoC"", SIMD, caches)",2018,6900000000,Huawei,7,74.13
-120,"Qualcomm Snapdragon 8cx / SCX8180 (octa-core ARM64 ""mobile SoC"", SIMD, caches)",2018,8500000000,Qualcomm,7,112
-121,"Qualcomm Snapdragon 855 (octa-core 64/32-bit ARM64 ""mobile SoC"", SIMD, caches)",2019,6700000000,Qualcomm,7,73
-122,"Qualcomm Snapdragon 865 (octa-core 64/32-bit ARM64 ""mobile SoC"", SIMD, caches)",2020,10300000000,Qualcomm,7,83.54
-123,"Apple A12X Bionic (octa-core 64/32-bit ARM64 ""mobile SoC"", SIMD, caches)",2018,10000000000,Apple,7,122
-124,"Fujitsu A64FX (64/32-bit, SIMD, caches)",2018,8786000000,Fujitsu,7,
-125,Tegra Xavier SoC (64/32-bit),2018,9000000000,Nvidia,12,350
-126,"AMD Ryzen 7 3700X (64-bit, SIMD, caches, I/O die)",2019,5990000000,AMD,7,199
+117,HiSilicon Kirin 710,2018,5500000000,Huawei,12,
+118,Apple A12 Bionic,2018,6900000000,Apple,7,83.27
+119,HiSilicon Kirin 980,2018,6900000000,Huawei,7,74.13
+120,Qualcomm Snapdragon 8cx,2018,8500000000,Qualcomm,7,112
+121,Qualcomm Snapdragon 855,2019,6700000000,Qualcomm,7,73
+122,Qualcomm Snapdragon 865,2020,10300000000,Qualcomm,7,83.54
+123,Apple A12X Bionic,2018,10000000000,Apple,7,122
+124,Fujitsu A64FX ,2018,8786000000,Fujitsu,7,
+125,Tegra Xavier SoC,2018,9000000000,Nvidia,12,350
+126,AMD Ryzen 7 3700X ,2019,5990000000,AMD,7,199
 127,HiSilicon Kirin 990 4G,2019,8000000000,Huawei,7,90
-128,"Apple A13 (hexa-core 64-bit ARM64 ""mobile SoC"", SIMD, caches)",2019,8500000000,Apple,7,98.48
-129,"AMD Ryzen 9 3900X (64-bit, SIMD, caches, I/O die)",2019,9890000000,AMD,7,273
+128,Apple A13,2019,8500000000,Apple,7,98.48
+129,AMD Ryzen 9 3900X ,2019,9890000000,AMD,7,273
 130,HiSilicon Kirin 990 5G,2019,10300000000,Huawei,7,113.31
-131,"AWS Graviton2 (64-bit, 64-core ARM-based, SIMD, caches)",2019,30000000000,Amazon,7,
-132,"AMD Epyc Rome (64-bit, SIMD, caches)",2019,39540000000,AMD,7,1008
-133,"TI Jacinto TDA4VM (ARM A72, DSP, SRAM)",2020,3500000000 ,Texas Instruments,16,
-134,"Apple A14 Bionic (hexa-core 64-bit ARM64 ""mobile SoC"", SIMD, caches)",2020,11800000000,Apple,5,88
-135,"Apple M1 (octa-core 64-bit ARM64 SoC, SIMD, caches)",2020,16000000000,Apple,5,119
+131,AWS Graviton2 ,2019,30000000000,Amazon,7,
+132,AMD Epyc Rome,2019,39540000000,AMD,7,1008
+134,Apple A14 Bionic,2020,11800000000,Apple,5,88
+135,Apple M1,2020,16000000000,Apple,5,119
 136,HiSilicon Kirin 9000,2020,15300000000,Huawei,5,114
 137,Apple A15,2021,15000000000,Apple,5,
-138,"AMD Ryzen 7 5800H (64-bit, SIMD, caches, I/O and GPU)",2021,10700000000,AMD,5,180
+138,AMD Ryzen 7 5800H,2021,10700000000,AMD,5,180
