@@ -8,7 +8,6 @@ async function fetchSheetData() {
     try {
         let response = await fetch(url);
         let data = await response.json();
-        console.log(data);
         if (data.values) {
             document.getElementById("cellData").innerText = 'Remaining balance: ' + data.values[0][0];
         } else {
