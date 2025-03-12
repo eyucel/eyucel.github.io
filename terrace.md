@@ -7,4 +7,4 @@ title: Topspin Terrace
 
 <p id="cellData">Loading...</p>
 
-<script defer src="/assets/js/tt.js"></script>
+<script src="/assets/js/tt.js" defer><\/script>
