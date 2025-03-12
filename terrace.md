@@ -1,9 +1,7 @@
 ---
 layout: page
-title: topspinterrace
+title: Topspin Terrace
 ---
-
-<p id="cellData">Loading...</p>
 
 <script>
     const sheetID = "1R46ZHMYsk0tB42ODh8bjfRLM3qXFh7M4kViAPlK3ODg"; // Replace with your Google Sheet ID
@@ -27,5 +25,8 @@ title: topspinterrace
         }
     }
 
-    document.onload = fetchSheetData;
+    window.onload = fetchSheetData;
 </script>
+
+<p id="cellData">Loading...</p>
+
