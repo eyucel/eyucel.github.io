@@ -3,14 +3,11 @@ layout: page
 title: Topspin Terrace
 ---
 
-
-
-<p id="cellData">Loading...</p>
 <script>
     const sheetID = "1R46ZHMYsk0tB42ODh8bjfRLM3qXFh7M4kViAPlK3ODg"; // Replace with your Google Sheet ID
     const apiKey = "AIzaSyBWAQhZW7nT-b_1tRaiIh_rD1xZb2zMU0o"; // Replace with your API Key
     const range = "Sheet2!A1"; // Cell A1
-    function fetchSheetData() {
+    async function fetchSheetData() {
         //const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/${range}`;
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/${range}?key=${apiKey}`;
         try {
@@ -28,5 +25,8 @@ title: Topspin Terrace
         }
     }
 
-    fetchSheetData();
+    window.onload = fetchSheetData;
 </script>
+
+<p id="cellData">Loading...</p>
+
