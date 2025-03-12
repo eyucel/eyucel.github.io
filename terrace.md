@@ -8,7 +8,7 @@ title: Topspin Terrace
 <p id="cellData">Loading...</p>
 <script>
     const sheetID = "1R46ZHMYsk0tB42ODh8bjfRLM3qXFh7M4kViAPlK3ODg"; // 
-    const apiKey = "AIzaSyBUE3Pk5RYcKYGwN-9Fw4wAfNipvrYKmjQ"; // 
+    const apiKey = "{{ site.env.gsk }}"; // 
     const range = "Sheet2!A1"; // Cell A1
     function fetchSheetData() {
         //const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/${range}`;
@@ -16,7 +16,7 @@ title: Topspin Terrace
         try {
             let response = await fetch(url);
             let data = await response.json();
-            print(data);
+            
             if (data.values) {
                 document.getElementById("cellData").innerText = 'Remaining balance: ' + data.values[0][0];
             } else {
