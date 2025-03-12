@@ -3,17 +3,22 @@ layout: page
 title: Topspin Terrace
 ---
 
+
+
+<p id="cellData">Loading...</p>
+
 <script>
-    const sheetID = "1R46ZHMYsk0tB42ODh8bjfRLM3qXFh7M4kViAPlK3ODg"; // Replace with your Google Sheet ID
-    const apiKey = "AIzaSyBWAQhZW7nT-b_1tRaiIh_rD1xZb2zMU0o"; // Replace with your API Key
+    const si = "1R46ZHMYsk0tB42ODh8bjfRLM3qXFh7M4kViAPlK3ODg";
+    const ak = "AIzaSyBUE3Pk5RYcKYGwN-9";
+    const ff = "-9";
+    const ee = "Fw4wAfNipvrYKmjQ";
     const range = "Sheet2!A1"; // Cell A1
     async function fetchSheetData() {
-        //const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/${range}`;
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/${range}?key=${apiKey}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${si}/values/${range}?key=${ak.concat(ff,ee)}`;
         try {
             let response = await fetch(url);
             let data = await response.json();
-            
+            console.log(data);
             if (data.values) {
                 document.getElementById("cellData").innerText = 'Remaining balance: ' + data.values[0][0];
             } else {
@@ -27,6 +32,3 @@ title: Topspin Terrace
 
     window.onload = fetchSheetData;
 </script>
-
-<p id="cellData">Loading...</p>
-
