@@ -9,11 +9,11 @@ title: Topspin Terrace
 
 <script>
     const si = "1R46ZHMYsk0tB42ODh8bjfRLM3qXFh7M4kViAPlK3ODg";
-    const ak = "AIzaSyBUE3Pk5RYcKYGwN-9";
+    const ak = "AIzaSyBUE3Pk5RYcKYGwN";
     const ff = "-9";
     const ee = "Fw4wAfNipvrYKmjQ";
     const range = "Sheet2!A1"; // Cell A1
-    async function fetchSheetData() {
+    function fetchSheetData() {
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${si}/values/${range}?key=${ak.concat(ff,ee)}`;
         try {
             let response = await fetch(url);
