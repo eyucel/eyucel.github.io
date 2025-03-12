@@ -27,5 +27,5 @@ title: topspinterrace
         }
     }
 
-    window.onload = fetchSheetData;
+    document.onload = fetchSheetData;
 </script>
