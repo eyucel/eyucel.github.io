@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 1: Multiple regression slices | STA 235</title>
+  <style>
+    :root{--ink:#1f2f3d;--muted:#647582;--paper:#fbfcfb;--panel:#fff;--grid:#dbe4e8;--teal:#31776f;--purple:#8070a4;--gold:#d99a2b;--pale:#eef5f5;--lav:#f5f2fa}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}header{padding:32px 20px 0}header>div,main{width:100%;max-width:1180px;margin:auto}.eyebrow{color:var(--teal);font-size:.74rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}h1{max-width:920px;margin:12px 0 10px;font-size:clamp(2rem,4.6vw,3.45rem);font-weight:500;letter-spacing:-.045em;line-height:1.04}header p{max-width:810px;margin:0 0 26px;color:var(--muted)}main{padding:0 20px 54px}.note{border-left:4px solid var(--teal);background:var(--pale);color:var(--muted);padding:14px 16px}.note strong{color:var(--ink)}.card{margin:1.45rem 0;border:1px solid var(--grid);border-radius:10px;background:var(--panel);padding:16px}h2{margin:0 0 .35rem;font-size:1.45rem}p{margin:.4rem 0}.lab-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap}.lab-head p{color:var(--muted);max-width:760px}.controls{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.25rem 0}.control{min-width:0}.control-row{display:flex;justify-content:space-between;gap:1rem;align-items:baseline}.control label{font-weight:750}.readout{color:var(--teal);font-weight:800;font-variant-numeric:tabular-nums}input[type=range]{width:100%;accent-color:var(--teal)}.slider-scale{display:flex;justify-content:space-between;color:var(--muted);font-size:.78rem}.prediction{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-left:3px solid var(--purple);background:var(--lav);padding:12px 14px;margin-bottom:1rem}.prediction span{color:var(--muted)}.prediction strong{font-size:1.2rem;font-variant-numeric:tabular-nums}.equation{border:1px solid var(--grid);border-radius:6px;background:#f7f9f9;padding:9px 10px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.partial-equations{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.75rem}.partial-equation{border-left:3px solid var(--teal);background:var(--pale);color:var(--ink);padding:9px 10px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.9rem;overflow-wrap:anywhere}.partial-equation.purple{border-color:var(--purple);background:var(--lav)}.plots{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.plot-panel{min-width:0}.plot-head{min-height:63px;margin-bottom:.35rem}.plot-head h3{margin:0;font-size:1rem}.plot-head p{color:var(--muted);font-size:.88rem}.plot-frame{border:1px solid var(--grid);border-radius:9px;background:var(--panel);padding:4px}.plot-frame svg{display:block;width:100%;height:auto}.legend{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:.82rem;margin:.55rem 0}.key{display:inline-block;width:18px;height:3px;margin-right:.35rem;vertical-align:middle}.key.teal{background:var(--teal)}.key.purple{background:var(--purple)}.key.gold{height:9px;width:9px;border-radius:50%;background:var(--gold)}.three-d{margin-top:1.2rem}.three-d .plot-head{min-height:0;display:flex;justify-content:space-between;gap:1rem;align-items:flex-end;flex-wrap:wrap}.three-d .plot-frame{padding:8px}.three-d svg{max-height:520px}.caption{color:var(--muted);font-size:.86rem}.takeaway{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem}.takeaway div{border:1px solid var(--grid);border-radius:10px;background:var(--panel);padding:14px}.takeaway strong{display:block;color:var(--teal);margin-bottom:.25rem}.takeaway p{color:var(--muted);font-size:.9rem}.axis{stroke:var(--ink);stroke-width:1.5}.gridline{stroke:var(--grid);stroke-width:1}.tick,.axis-label,.slice-label{fill:var(--muted);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}.tick{font-size:11px}.axis-label{font-size:12px;font-weight:700}.slice-label{font-size:12px;font-weight:700}.plane{fill:color-mix(in srgb,var(--teal) 15%,transparent);stroke:var(--teal);stroke-width:1.5}.plane-grid{stroke:color-mix(in srgb,var(--teal) 40%,var(--grid));stroke-width:1}.slice-area{fill:none;stroke:var(--teal);stroke-width:4}.slice-beds{fill:none;stroke:var(--purple);stroke-width:4}.guide{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-dasharray:5 5}.selected{fill:var(--gold);stroke:var(--ink);stroke-width:1.5}button{border:1px solid var(--grid);border-radius:7px;background:#fff;color:var(--ink);font:inherit;font-size:.84rem;font-weight:750;padding:8px 11px;cursor:pointer}button:hover{border-color:var(--teal);color:var(--teal)}button:focus-visible,input:focus-visible{outline:3px solid color-mix(in srgb,var(--teal) 32%,transparent);outline-offset:2px}@media(max-width:760px){.controls,.plots,.partial-equations,.takeaway{grid-template-columns:1fr}.plot-head{min-height:0}.three-d svg{min-height:330px}}@media(max-width:480px){header{padding:24px 12px 0}main{padding:0 12px 40px}.prediction{align-items:flex-start}.prediction strong{font-size:1.05rem}.plot-frame{margin:0 -4px}}
+  </style>
+  <link rel="stylesheet" href="../lesson-theme.css">
+  <style>
+    .view-tools{display:flex;align-items:center;justify-content:flex-end;gap:.65rem;flex-wrap:wrap}.view-tools button{padding:6px 9px}.three-d .plot-frame{touch-action:none}.three-d svg{cursor:grab;user-select:none}.three-d svg.is-dragging{cursor:grabbing}.three-d svg:focus-visible{outline:3px solid color-mix(in srgb,var(--teal) 32%,transparent);outline-offset:2px;border-radius:6px}@media(max-width:560px){.view-tools{justify-content:flex-start}}
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="topline"><div class="eyebrow">STA 235 · Week 1 · multiple regression</div><nav class="nav" aria-label="Week 1 demos"><a href="simple-regression-levers.html">Simple regression levers</a><a href="multiple-regression-slices.html" aria-current="page">Multiple regression slices</a></nav></div>
+      <h1>A regression plane is two “holding constant” stories</h1>
+      <p>Explore a model of Austin home prices. The two line plots are slices through the same multiple-regression plane shown below.</p>
+    </div>
+  </header>
+  <main>
+    <section class="note"><strong>Core idea:</strong> A coefficient describes how the prediction changes when one covariate moves and the other is held constant. The sliders choose the home represented by the gold point.</section>
+
+    <section class="card">
+      <div class="lab-head">
+        <div><h2>Slice the fitted plane</h2><p>Change either covariate. The matching gold point moves; the other plot’s fitted line shifts because its held-constant value changed.</p></div>
+        <button id="reset" type="button">Reset example</button>
+      </div>
+
+      <div class="equation" aria-label="Multiple regression equation">Predicted price = $153,643 + $310.81(Area) − $61,775(Bedrooms)</div>
+      <div class="partial-equations" aria-live="polite">
+        <div id="areaPartial" class="partial-equation"></div>
+        <div id="bedsPartial" class="partial-equation purple"></div>
+      </div>
+
+      <div class="controls">
+        <div class="control">
+          <div class="control-row"><label for="area">Living area</label><output id="areaOut" class="readout">2,000 sq ft</output></div>
+          <input id="area" type="range" min="800" max="4000" step="50" value="2000">
+          <div class="slider-scale"><span>800</span><span>4,000 sq ft</span></div>
+        </div>
+        <div class="control">
+          <div class="control-row"><label for="beds">Bedrooms</label><output id="bedsOut" class="readout">4 bedrooms</output></div>
+          <input id="beds" type="range" min="2" max="6" step="1" value="4">
+          <div class="slider-scale"><span>2</span><span>6 bedrooms</span></div>
+        </div>
+      </div>
+
+      <div class="prediction" aria-live="polite"><span id="homeDescription">For a 2,000 sq ft home with 4 bedrooms</span><strong id="prediction">Predicted price: $528,163</strong></div>
+
+      <div class="plots">
+        <article class="plot-panel">
+          <div class="plot-head"><h3>Move area; hold bedrooms constant</h3><p id="areaSubtitle">Bedrooms held at 4</p></div>
+          <div class="plot-frame"><svg id="areaPlot" viewBox="0 0 520 330" role="img" aria-label="Predicted price by living area, holding bedrooms constant at four"></svg></div>
+        </article>
+        <article class="plot-panel">
+          <div class="plot-head"><h3>Move bedrooms; hold area constant</h3><p id="bedsSubtitle">Living area held at 2,000 sq ft</p></div>
+          <div class="plot-frame"><svg id="bedsPlot" viewBox="0 0 520 330" role="img" aria-label="Predicted price by bedrooms, holding living area constant at two thousand square feet"></svg></div>
+        </article>
+      </div>
+      <div class="legend" aria-label="Plot legend"><span><i class="key teal"></i>area slice</span><span><i class="key purple"></i>bedroom slice</span><span><i class="key gold"></i>selected home</span></div>
+
+      <div class="three-d">
+        <div class="plot-head"><div><h3>The same model in three dimensions</h3><p>Both colored lines lie on one fitted plane and cross at the selected home.</p></div><div class="view-tools"><span id="rotationHint" class="caption">Drag to rotate · arrow keys also work</span><button id="resetView" type="button">Reset view</button></div></div>
+        <div class="plot-frame"><svg id="planePlot" viewBox="0 0 1000 560" role="img" tabindex="0" aria-describedby="rotationHint" aria-label="Rotatable three-dimensional multiple regression plane for predicted home price by area and bedrooms"></svg></div>
+      </div>
+    </section>
+
+    <section class="takeaway" aria-label="Coefficient interpretations">
+      <div><strong>Area: +$310.81</strong><p>For one additional square foot, predicted price rises by $310.81 when bedrooms are held fixed.</p></div>
+      <div><strong>Bedrooms: −$61,775</strong><p>For one additional bedroom, predicted price falls by $61,775 when area is held fixed.</p></div>
+      <div><strong>One plane, many slices</strong><p>Every held-constant value creates another parallel line cut from the same fitted plane.</p></div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const $ = id => document.getElementById(id);
+      const area = $('area');
+      const beds = $('beds');
+      const money = value => new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:0}).format(value);
+      const number = value => new Intl.NumberFormat('en-US').format(value);
+      const predict = (a, b) => 153643 + 310.81 * a - 61775 * b;
+      const yMin = 0;
+      const yMax = 1300000;
+      const defaultView = {yaw:0.58, pitch:0.52};
+      const view = {...defaultView};
+
+      const line = (x1, y1, x2, y2, cls='gridline', extra='') => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${cls}" ${extra}/>`;
+      const text = (x, y, value, cls='tick', anchor='middle', extra='') => `<text x="${x}" y="${y}" class="${cls}" text-anchor="${anchor}" ${extra}>${value}</text>`;
+
+      function draw2d(svg, kind, selectedArea, selectedBeds) {
+        const W=520, H=330, L=72, R=500, T=22, B=275;
+        const xMin = kind === 'area' ? 800 : 2;
+        const xMax = kind === 'area' ? 4000 : 6;
+        const selectedX = kind === 'area' ? selectedArea : selectedBeds;
+        const x = value => L + (value-xMin)/(xMax-xMin)*(R-L);
+        const y = value => B - (value-yMin)/(yMax-yMin)*(B-T);
+        const priceAt = value => kind === 'area' ? predict(value, selectedBeds) : predict(selectedArea, value);
+        const xTicks = kind === 'area' ? [800,1600,2400,3200,4000] : [2,3,4,5,6];
+        const yTicks = [0,250000,500000,750000,1000000,1250000];
+        let html = `<title>${kind === 'area' ? 'Predicted price by area' : 'Predicted price by bedrooms'}</title>`;
+        yTicks.forEach(v => {
+          html += line(L,y(v),R,y(v));
+          html += text(L-10,y(v)+4,v === 0 ? '$0' : `$${v/1000000 >= 1 ? (v/1000000).toFixed(2).replace(/0$/,'')+'M' : v/1000+'k'}`,'tick','end');
+        });
+        xTicks.forEach(v => {
+          html += line(x(v),B,x(v),B+5,'axis');
+          html += text(x(v),B+22,kind === 'area' ? number(v) : v);
+        });
+        html += line(L,T,L,B,'axis') + line(L,B,R,B,'axis');
+        html += text(16,16,'Predicted price','axis-label','start');
+        html += text((L+R)/2,H-9,kind === 'area' ? 'Living area (sq ft)' : 'Bedrooms','axis-label');
+        html += `<path d="M ${x(xMin)} ${y(priceAt(xMin))} L ${x(xMax)} ${y(priceAt(xMax))}" class="${kind === 'area' ? 'slice-area' : 'slice-beds'}"/>`;
+        const px=x(selectedX), py=y(priceAt(selectedX));
+        html += line(px,B,px,py,'guide');
+        html += `<circle cx="${px}" cy="${py}" r="7" class="selected"/>`;
+        const labelY = py < 48 ? py + 26 : py - 14;
+        html += text(px,labelY,money(priceAt(selectedX)),'slice-label','middle',`paint-order="stroke" stroke="var(--panel)" stroke-width="5"`);
+        svg.innerHTML = html;
+      }
+
+      function drawPlane(selectedArea, selectedBeds) {
+        const svg = $('planePlot');
+        const rawProject = (a,b,p) => {
+          const x=(a-2400)/1600*1.7, z=(b-4)/2*1.15, y=(p-yMin)/(yMax-yMin)*1.45;
+          const cos=Math.cos(view.yaw), sin=Math.sin(view.yaw);
+          const rx=x*cos-z*sin, rz=x*sin+z*cos;
+          const vertical=y*Math.cos(view.pitch)-rz*Math.sin(view.pitch);
+          return {x:rx, y:-vertical, depth:rz};
+        };
+        const fitPoints=[
+          [800,2,0],[4000,2,0],[4000,6,0],[800,6,0],
+          [800,2,predict(800,2)],[4000,2,predict(4000,2)],[4000,6,predict(4000,6)],[800,6,predict(800,6)],
+          [800,2,yMax]
+        ].map(args=>rawProject(...args));
+        const minX=Math.min(...fitPoints.map(p=>p.x)),maxX=Math.max(...fitPoints.map(p=>p.x));
+        const minY=Math.min(...fitPoints.map(p=>p.y)),maxY=Math.max(...fitPoints.map(p=>p.y));
+        const scale=Math.min(210,820/(maxX-minX),400/(maxY-minY));
+        const offsetX=500-(minX+maxX)/2*scale,offsetY=280-(minY+maxY)/2*scale;
+        const project=(a,b,p)=>{const q=rawProject(a,b,p);return{x:offsetX+q.x*scale,y:offsetY+q.y*scale,depth:q.depth}};
+        const pstr = p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+        const corners = [[800,2],[4000,2],[4000,6],[800,6]].map(([a,b])=>project(a,b,predict(a,b)));
+        let html='<title>Multiple regression plane with two held-constant slices</title><desc>The teal area slice and purple bedroom slice cross at the gold selected home.</desc>';
+        html += `<polygon points="${corners.map(pstr).join(' ')}" class="plane"/>`;
+        [800,1600,2400,3200,4000].forEach(a=>{const p1=project(a,2,predict(a,2)),p2=project(a,6,predict(a,6));html+=line(p1.x,p1.y,p2.x,p2.y,'plane-grid')});
+        [2,3,4,5,6].forEach(b=>{const p1=project(800,b,predict(800,b)),p2=project(4000,b,predict(4000,b));html+=line(p1.x,p1.y,p2.x,p2.y,'plane-grid')});
+
+        const baseA0=project(800,2,0), baseA1=project(4000,2,0), baseB1=project(800,6,0), topY=project(800,2,yMax);
+        html += line(baseA0.x,baseA0.y,baseA1.x,baseA1.y,'axis');
+        html += line(baseA0.x,baseA0.y,baseB1.x,baseB1.y,'axis');
+        html += line(baseA0.x,baseA0.y,topY.x,topY.y,'axis');
+        [800,1600,2400,3200,4000].forEach(a=>{const p=project(a,2,0);html+=text(p.x,p.y+18,number(a))});
+        [2,3,4,5,6].forEach(b=>{const p=project(800,b,0);html+=text(p.x-10,p.y+4,b,'tick','end')});
+        [0,250000,500000,750000,1000000,1250000].forEach(v=>{const p=project(800,2,v);html+=line(p.x-5,p.y,p.x+5,p.y,'axis');html+=text(p.x-10,p.y+4,v===0?'$0':v>=1000000?`$${v/1000000}M`:`$${v/1000}k`,'tick','end')});
+        html += text((baseA0.x+baseA1.x)/2,(baseA0.y+baseA1.y)/2+38,'Living area (sq ft)','axis-label');
+        html += text((baseA0.x+baseB1.x)/2-20,(baseA0.y+baseB1.y)/2+8,'Bedrooms','axis-label','end');
+        html += text(topY.x-12,topY.y-12,'Predicted price','axis-label','end');
+
+        const a1=project(800,selectedBeds,predict(800,selectedBeds)),a2=project(4000,selectedBeds,predict(4000,selectedBeds));
+        const b1=project(selectedArea,2,predict(selectedArea,2)),b2=project(selectedArea,6,predict(selectedArea,6));
+        html += line(a1.x,a1.y,a2.x,a2.y,'slice-area');
+        html += line(b1.x,b1.y,b2.x,b2.y,'slice-beds');
+        const selected=project(selectedArea,selectedBeds,predict(selectedArea,selectedBeds));
+        const floor=project(selectedArea,selectedBeds,0);
+        html += line(floor.x,floor.y,selected.x,selected.y,'guide');
+        html += `<circle cx="${selected.x}" cy="${selected.y}" r="8" class="selected"/>`;
+        const anchor = selected.x > 760 ? 'end' : 'start';
+        const lx = selected.x > 760 ? selected.x-13 : selected.x+13;
+        html += text(lx,selected.y-12,money(predict(selectedArea,selectedBeds)),'slice-label',anchor,`paint-order="stroke" stroke="var(--panel)" stroke-width="6"`);
+        svg.innerHTML=html;
+      }
+
+      function update() {
+        const a=Number(area.value), b=Number(beds.value), p=predict(a,b);
+        $('areaOut').textContent=`${number(a)} sq ft`;
+        $('bedsOut').textContent=`${b} ${b===1?'bedroom':'bedrooms'}`;
+        $('homeDescription').textContent=`For a ${number(a)} sq ft home with ${b} bedrooms`;
+        $('prediction').textContent=`Predicted price: ${money(p)}`;
+        $('areaSubtitle').textContent=`Bedrooms held at ${b}`;
+        $('bedsSubtitle').textContent=`Living area held at ${number(a)} sq ft`;
+        $('areaPartial').textContent=`Bedrooms = ${b}: Predicted price = ${money(153643 - 61775 * b)} + $310.81(Area)`;
+        $('bedsPartial').textContent=`Area = ${number(a)} sq ft: Predicted price = ${money(153643 + 310.81 * a)} − $61,775(Bedrooms)`;
+        $('areaPlot').setAttribute('aria-label',`Predicted price by living area, holding bedrooms constant at ${b}. The selected prediction is ${money(p)}.`);
+        $('bedsPlot').setAttribute('aria-label',`Predicted price by bedrooms, holding living area constant at ${number(a)} square feet. The selected prediction is ${money(p)}.`);
+        $('planePlot').setAttribute('aria-label',`Rotatable three-dimensional regression plane. Selected home: ${number(a)} square feet, ${b} bedrooms, predicted price ${money(p)}. Drag or use arrow keys to rotate.`);
+        draw2d($('areaPlot'),'area',a,b);
+        draw2d($('bedsPlot'),'beds',a,b);
+        drawPlane(a,b);
+      }
+
+      area.addEventListener('input',update);
+      beds.addEventListener('input',update);
+      const plane = $('planePlot');
+      let dragging=false, startX=0, startY=0, startYaw=0, startPitch=0;
+      plane.addEventListener('pointerdown',event=>{
+        if(event.button!==0)return;
+        dragging=true;startX=event.clientX;startY=event.clientY;startYaw=view.yaw;startPitch=view.pitch;
+        plane.setPointerCapture(event.pointerId);plane.classList.add('is-dragging');
+      });
+      plane.addEventListener('pointermove',event=>{
+        if(!dragging)return;
+        view.yaw=startYaw+(event.clientX-startX)*.008;
+        view.pitch=Math.max(.18,Math.min(1.05,startPitch-(event.clientY-startY)*.006));
+        drawPlane(Number(area.value),Number(beds.value));
+      });
+      const endDrag=event=>{if(!dragging)return;dragging=false;plane.classList.remove('is-dragging');if(plane.hasPointerCapture(event.pointerId))plane.releasePointerCapture(event.pointerId)};
+      plane.addEventListener('pointerup',endDrag);
+      plane.addEventListener('pointercancel',endDrag);
+      plane.addEventListener('keydown',event=>{
+        const step=event.shiftKey?.3:.14;
+        if(event.key==='ArrowLeft')view.yaw-=step;
+        else if(event.key==='ArrowRight')view.yaw+=step;
+        else if(event.key==='ArrowUp')view.pitch=Math.min(1.05,view.pitch+.08);
+        else if(event.key==='ArrowDown')view.pitch=Math.max(.18,view.pitch-.08);
+        else return;
+        event.preventDefault();drawPlane(Number(area.value),Number(beds.value));
+      });
+      $('resetView').addEventListener('click',()=>{Object.assign(view,defaultView);drawPlane(Number(area.value),Number(beds.value));plane.focus()});
+      $('reset').addEventListener('click',()=>{area.value=2000;beds.value=4;Object.assign(view,defaultView);update();});
+      update();
+    })();
+  </script>
+</body>
+</html>
