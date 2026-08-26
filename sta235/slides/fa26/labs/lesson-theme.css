@@ -1,0 +1,313 @@
+/* Shared visual system for STA 235 Fall 2026 interactive lessons. */
+:root {
+  --ink: #1f2f3d;
+  --muted: #647582;
+  --paper: #fbfcfb;
+  --bg: #fbfcfb;
+  --panel: #ffffff;
+  --grid: #dbe4e8;
+  --line: #dbe4e8;
+  --teal: #31776f;
+  --blue: #3c78a8;
+  --red: #c74d58;
+  --purple: #8070a4;
+  --gold: #d99a2b;
+  --green: #237047;
+  --orange: #a84d18;
+  --pale: #eef5f5;
+  --pale-teal: #eef5f5;
+  --pale2: #eef5f5;
+  --soft-teal: #eef5f5;
+  --soft-blue: #edf3f7;
+  --soft-orange: #fff5ed;
+  --lav: #f5f2fa;
+}
+
+html { color-scheme: light; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+header {
+  background: transparent;
+  color: var(--ink);
+  padding: 32px 20px 0;
+}
+
+header > div,
+header div,
+main,
+.page {
+  width: 100%;
+  max-width: 1180px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+main:not(.page) { padding: 0 20px 54px; }
+.page { padding: 32px 20px 54px; }
+header + main { padding-top: 0; }
+
+h1,
+.title {
+  max-width: 920px;
+  margin: 12px 0 10px;
+  color: var(--ink);
+  font-size: clamp(2rem, 4.6vw, 3.45rem);
+  font-weight: 500;
+  letter-spacing: -.045em;
+  line-height: 1.04;
+}
+
+h2 { color: var(--ink); }
+
+.eyebrow {
+  margin: 0;
+  color: var(--teal);
+  font-size: .74rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  opacity: 1;
+  text-transform: uppercase;
+}
+
+header p,
+.subtitle,
+.intro {
+  max-width: 810px;
+  margin: 0 0 26px;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.55;
+  opacity: 1;
+}
+
+.topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nav { display: flex; gap: 7px; flex-wrap: wrap; }
+.nav a {
+  border: 1px solid var(--grid);
+  border-radius: 7px;
+  padding: 6px 9px;
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.nav a:hover,
+.nav a[aria-current="page"] {
+  border-color: var(--teal);
+  background: #f4f9f8;
+  color: var(--teal);
+}
+
+section { scroll-margin-top: 20px; }
+
+.card,
+.model-card,
+.term,
+.mini,
+.step,
+.steps > div {
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: none;
+}
+
+.card { padding: 16px; }
+
+.concept,
+.note,
+.callout {
+  border: 0;
+  border-left: 4px solid var(--teal);
+  border-radius: 0;
+  background: var(--pale);
+  color: var(--muted);
+  line-height: 1.5;
+  padding: 14px 16px;
+}
+
+.concept strong,
+.note strong,
+.callout strong { color: var(--ink); }
+
+.summary,
+.reading {
+  border-radius: 0;
+  border-left: 3px solid var(--purple);
+  background: var(--lav);
+  color: var(--muted);
+}
+
+.summary strong,
+.reading strong,
+.reading h3 { color: var(--ink); }
+
+button,
+.button {
+  border: 1px solid var(--grid);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: .84rem;
+  font-weight: 750;
+  padding: 8px 11px;
+  cursor: pointer;
+}
+
+button:hover,
+.button:hover {
+  border-color: var(--teal);
+  background: #f4f9f8;
+  color: var(--teal);
+}
+
+button:disabled,
+.button:disabled { cursor: not-allowed; opacity: .45; }
+
+button:focus-visible,
+.button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--teal) 32%, transparent);
+  outline-offset: 2px;
+}
+
+.button.primary {
+  border-color: var(--teal);
+  background: var(--teal);
+  color: #fff;
+}
+.button.primary:hover { border-color: #28645e; background: #28645e; color: #fff; }
+
+select {
+  border: 1px solid #b8c5cc;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
+}
+input[type="range"] { accent-color: var(--teal); }
+
+.selection-picker {
+  min-width: 0;
+  margin: .4rem 0;
+  padding: 0;
+  border: 0;
+}
+
+.selection-picker legend {
+  margin-bottom: .45rem;
+  padding: 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.selection-options {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.selection-options label { margin: 0; cursor: pointer; }
+
+.selection-options input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.selection-options span {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--grid);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--muted);
+  font-size: .88rem;
+  font-weight: 750;
+  padding: 7px 11px;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.selection-options label:hover span {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.selection-options input:checked + span {
+  border-color: var(--teal);
+  background: var(--teal);
+  color: #fff;
+}
+
+.selection-options input:focus-visible + span {
+  outline: 3px solid color-mix(in srgb, var(--teal) 32%, transparent);
+  outline-offset: 2px;
+}
+
+code,
+.equation,
+.model {
+  border: 1px solid var(--grid);
+  border-radius: 6px;
+  background: #f7f9f9;
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+code { padding: .08rem .28rem; }
+.equation,
+.model { padding: 9px 10px; }
+
+.chart-frame,
+.diagnostic,
+.table-wrap {
+  border-color: var(--grid);
+  border-radius: 9px;
+  background: var(--panel);
+}
+
+table { background: var(--panel); }
+th, td { border-color: var(--grid); }
+th { color: var(--muted); }
+
+footer,
+.footer {
+  border-top: 1px solid var(--grid);
+  margin-top: 30px;
+  padding-top: 15px;
+  color: var(--muted);
+  font-size: .8rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 680px) {
+  header { padding: 24px 12px 0; }
+  main:not(.page) { padding: 0 12px 40px; }
+  .page { padding: 24px 12px 40px; }
+  h1, .title { font-size: 2.15rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+}
