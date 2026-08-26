@@ -52,10 +52,22 @@ jobs:
 
       - name: Test site
         run: |
-          bundle exec htmlproofer _site \
-            --disable-external \
-            --ignore-files "/sta235\/slides\/" \
-            --ignore-urls "/^http:\/\/127.0.0.1/,/^http:\/\/0.0.0.0/,/^http:\/\/localhost/"
+          bundle exec ruby <<'RUBY'
+          require "html-proofer"
+
+          HTMLProofer.check_directory(
+            "_site",
+            {
+              disable_external: true,
+              ignore_files: [%r{/sta235/slides/}],
+              ignore_urls: [
+                %r{^http://127\.0\.0\.1},
+                %r{^http://0\.0\.0\.0},
+                %r{^http://localhost}
+              ]
+            }
+          ).run
+          RUBY
 
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
