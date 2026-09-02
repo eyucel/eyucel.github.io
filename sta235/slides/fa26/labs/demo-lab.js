@@ -597,6 +597,94 @@
     update();
   }
 
+  function week2noise() {
+    const truth = {intercept: 10, slope: 2};
+    let sampleNumber = 1;
+    let rows = [];
+
+    app.innerHTML = `
+      <section class="demo-callout"><strong>Data-generating process:</strong> every sample comes from y = 10 + 2x + error, where error has standard deviation σ. The fitted line will change from sample to sample; the true line does not.</section>
+      <div class="demo-grid">
+        <section class="demo-card demo-controls" aria-label="Simulation controls">
+          <div class="demo-control"><div class="demo-control-head"><label for="w2n-sigma">Noise standard deviation, σ</label><output id="w2n-sigma-out"></output></div><input id="w2n-sigma" type="range" min="0.5" max="12" step="0.5" value="4"><div class="demo-scale"><span>Almost no noise</span><span>Very noisy</span></div></div>
+          <div class="demo-control"><div class="demo-control-head"><label for="w2n-n">Number of points</label><output id="w2n-n-out"></output></div><input id="w2n-n" type="range" min="10" max="100" step="10" value="50"><div class="demo-scale"><span>10</span><span>100</span></div></div>
+          <div class="demo-actions"><button id="w2n-simulate" class="active" type="button">Generate new sample</button></div>
+          <div class="demo-equation">True equation: y = 10 + 2x</div>
+          <p class="demo-small">The shaded area gives a 95% prediction interval for one new outcome at each x-value.</p>
+        </section>
+        <section class="demo-stack">
+          <div class="demo-chart"><div class="demo-chart-title"><strong>True line, fitted line, and prediction interval</strong><span id="w2n-chart-note"></span></div><div class="demo-chart-frame"><svg id="w2n-chart" viewBox="0 0 760 430" role="img" aria-label="Simulated points with a true regression line, an estimated regression line, and a shaded 95 percent prediction interval"></svg></div><div class="demo-legend"><span><i class="demo-key dashed"></i>true line</span><span><i class="demo-key"></i>estimated line</span><span><i class="demo-key band"></i>95% prediction interval</span><span><i class="demo-key gold"></i>inside prediction interval</span><span><i class="demo-key red"></i>outside prediction interval</span></div></div>
+          <div class="demo-stat-grid five"><div class="demo-stat"><span>Estimated intercept</span><strong id="w2n-intercept"></strong></div><div class="demo-stat"><span>Estimated slope</span><strong id="w2n-slope"></strong></div><div class="demo-stat"><span>R²</span><strong id="w2n-r2"></strong></div><div class="demo-stat"><span>RSE</span><strong id="w2n-rse"></strong></div><div class="demo-stat"><span>Inside 95% PI</span><strong id="w2n-coverage"></strong></div></div>
+          <div id="w2n-equation" class="demo-equation"></div>
+          <div id="w2n-reading" class="demo-reading" aria-live="polite"></div>
+        </section>
+      </div>
+      <section class="demo-card" style="margin-top:18px"><h2>Try this</h2><p>Set σ to 1, 4, and 10. For each value, generate several samples. What stays fixed? What varies? Does the interval become wider when the residuals become more variable?</p></section>`;
+
+    const simulate = () => {
+      const sigma = +byId('w2n-sigma').value;
+      const n = +byId('w2n-n').value;
+      const random = rng(20260200 + sampleNumber * 7919);
+      rows = Array.from({length: n}, () => {
+        const x = 10 * random();
+        return {x, y: truth.intercept + truth.slope * x + sigma * normal(random)};
+      });
+      sampleNumber += 1;
+    };
+
+    const update = ({newData = false} = {}) => {
+      if (newData || !rows.length) simulate();
+      const sigma = +byId('w2n-sigma').value;
+      const n = rows.length;
+      const xbar = mean(rows.map(row => row.x));
+      const sxx = sum(rows.map(row => (row.x - xbar) ** 2));
+      const fit = regression(rows, ['x']);
+      const [intercept, slope] = fit.beta;
+      const residualSD = Math.sqrt(fit.mse);
+      const ybar = mean(rows.map(row => row.y));
+      const rSquared = 1 - sum(fit.residuals.map(value => value ** 2)) / sum(rows.map(row => (row.y - ybar) ** 2));
+      const tCriticalByN = {10: 2.306, 20: 2.101, 30: 2.048, 40: 2.024, 50: 2.011, 60: 2.002, 70: 1.995, 80: 1.991, 90: 1.987, 100: 1.984};
+      const tCritical = tCriticalByN[n];
+      const interval = x => {
+        const estimate = intercept + slope * x;
+        const margin = tCritical * residualSD * Math.sqrt(1 + 1 / rows.length + (x - xbar) ** 2 / sxx);
+        return {estimate, lower: estimate - margin, upper: estimate + margin};
+      };
+      const covered = rows.filter(row => row.y >= interval(row.x).lower && row.y <= interval(row.x).upper).length;
+      const allY = rows.flatMap(row => [row.y, interval(row.x).lower, interval(row.x).upper, truth.intercept + truth.slope * row.x]);
+      const ymin = Math.floor((Math.min(...allY) - 2) / 5) * 5;
+      const ymax = Math.ceil((Math.max(...allY) + 2) / 5) * 5;
+      const frame = axes({w: 760, h: 430, l: 60, r: 20, t: 18, b: 50, xmin: 0, xmax: 10, ymin, ymax, xLabel: 'Predictor x', yLabel: 'Outcome y'});
+      const xs = Array.from({length: 101}, (_, i) => i / 10);
+      const upper = xs.map(x => [frame.x(x), frame.y(interval(x).upper)]);
+      const lower = xs.map(x => [frame.x(x), frame.y(interval(x).lower)]);
+      const band = `${path(upper)} ${lower.slice().reverse().map(point => `L ${point[0].toFixed(2)} ${point[1].toFixed(2)}`).join(' ')} Z`;
+      const fitted = path(xs.map(x => [frame.x(x), frame.y(intercept + slope * x)]));
+      const trueLine = path(xs.map(x => [frame.x(x), frame.y(truth.intercept + truth.slope * x)]));
+      const points = rows.map(row => {
+        const isCovered = row.y >= interval(row.x).lower && row.y <= interval(row.x).upper;
+        return `<circle cx="${frame.x(row.x)}" cy="${frame.y(row.y)}" r="3.7" fill="${isCovered ? 'var(--gold)' : 'var(--red)'}" fill-opacity=".76"/>`;
+      }).join('');
+      byId('w2n-sigma-out').value = fmt(sigma, 1);
+      byId('w2n-n-out').value = n;
+      byId('w2n-chart-note').textContent = `n = ${n} · σ = ${fmt(sigma, 1)} · sample ${sampleNumber - 1}`;
+      byId('w2n-chart').innerHTML = `<title>Simulated regression data and 95 percent prediction interval</title>${frame.markup}<path d="${band}" class="demo-band"/><path d="${trueLine}" class="demo-truth"/><path d="${fitted}" class="demo-fit"/>${points}`;
+      byId('w2n-intercept').textContent = fmt(intercept, 2);
+      byId('w2n-slope').textContent = fmt(slope, 2);
+      byId('w2n-r2').textContent = fmt(rSquared, 3);
+      byId('w2n-rse').textContent = fmt(residualSD, 2);
+      const capture = covered / n;
+      byId('w2n-coverage').textContent = `${covered} / ${n} (${pct(capture)})`;
+      byId('w2n-equation').textContent = `Estimated equation: ŷ = ${fmt(intercept, 2)} ${slope < 0 ? '−' : '+'} ${fmt(Math.abs(slope), 2)}x`;
+      byId('w2n-reading').innerHTML = `<strong>${covered} of ${n} points (${pct(capture)}) are inside the fitted 95% prediction interval.</strong> The residual standard error is ${fmt(residualSD, 2)}. The interval is wider than a confidence interval because it is meant to cover one individual future outcome, not just the mean outcome.`;
+    };
+
+    byId('w2n-sigma').addEventListener('input', () => update({newData: true}));
+    byId('w2n-n').addEventListener('input', () => update({newData: true}));
+    byId('w2n-simulate').addEventListener('click', () => update({newData: true}));
+    update({newData: true});
+  }
+
   function week13() {
     const random=rng(1313),rows=Array.from({length:140},(_,i)=>{const score=20+80*random(),probability=1/(1+Math.exp(-(-4.1+.068*score))),actual=random()<probability?1:0;return{score,probability,actual,id:i};});
     app.innerHTML=`
@@ -617,6 +705,6 @@
     byId('w13-threshold').addEventListener('input',update);byId('w13-balance').addEventListener('click',()=>{byId('w13-threshold').value=.5;update();});update();
   }
 
-  const demos = {week1, week2, week3, week4, week5, week6, week7, week8, week9, week10, week11, week12, week12interaction, week13};
+  const demos = {week1, week2, week2noise, week3, week4, week5, week6, week7, week8, week9, week10, week11, week12, week12interaction, week13};
   if (demos[demo]) demos[demo]();
 })();
