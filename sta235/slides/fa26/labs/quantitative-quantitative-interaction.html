@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 5: Two quantitative variables interacting | STA 235</title>
+  <link rel="stylesheet" href="quantitative-quantitative-interaction.css?v=4">
+  <link rel="stylesheet" href="../lesson-theme.css">
+</head>
+<body>
+  <main class="page">
+    <div class="topline">
+      <div class="eyebrow">STA 235 &middot; Week 5 &middot; interaction terms</div>
+      <nav class="nav" aria-label="Week 5 pages">
+        <a href="sales-coaching-meetings-interaction.html">Quantitative + categorical</a>
+        <a href="quantitative-quantitative-interaction.html" aria-current="page">Two quantitative variables</a>
+      </nav>
+    </div>
+    <h1 class="title">When one slope changes continuously with another variable</h1>
+    <p class="intro">Suppose a retailer models weekly revenue using digital ad spending and the discount rate. An interaction allows the payoff from another $1,000 of ads to change as the discount changes.</p>
+
+    <section class="callout"><strong>A quantitative-by-quantitative interaction is a changing-slope model.</strong> There is not one ad-spending slope. There is a different slope for every discount rate.</section>
+
+    <section class="lesson" aria-labelledby="model-title">
+      <div class="section-head"><div><h2 id="model-title">Start with the model, then collect the slope</h2><p>Revenue and ad spending are measured in thousands of dollars; discount is measured in percentage points.</p></div></div>
+      <div id="modelEquation" class="equation">Revenue = 40 + 3(Ads) + 1.2(Discount) + 0.18(Ads x Discount)</div>
+      <div class="term-grid">
+        <article class="term"><strong>Ad slope</strong><p>At discount <em>d</em>, the ad slope is <code>b1 + b3d</code>. This is the main quantity to watch.</p></article>
+        <article class="term"><strong>Discount slope</strong><p>At ad spending <em>a</em>, the discount slope is <code>b2 + b3a</code>. The relationship works in either direction.</p></article>
+        <article class="term"><strong>Interaction</strong><p><code>b3</code> is the change in the ad slope for each one-point increase in discount.</p></article>
+      </div>
+    </section>
+
+    <section class="lesson" aria-labelledby="lab-title">
+      <div class="section-head"><div><h2 id="lab-title">Changing-slope lab</h2><p>Move the selected discount first. The highlighted line changes because both its intercept and its slope depend on discount. Then change the interaction coefficient and watch the fan of lines and the 3D surface reshape together.</p></div><button class="button" id="reset" type="button">Reset example</button></div>
+      <div class="lab-grid">
+        <form class="controls" onsubmit="return false" aria-label="Interaction model controls">
+          <h3>Model and selected business</h3>
+          <div class="control"><label for="adSlope">Ad slope when discount = 0 <output id="adSlopeOut">3.00</output></label><input id="adSlope" type="range" min="-1" max="6" step="0.25" value="3"><small>Coefficient b1</small></div>
+          <div class="control"><label for="discountSlope">Discount slope when ads = 0 <output id="discountSlopeOut">1.20</output></label><input id="discountSlope" type="range" min="-2" max="3" step="0.2" value="1.2"><small>Coefficient b2</small></div>
+          <div class="control"><label for="interaction">Interaction coefficient <output id="interactionOut">+0.18</output></label><input id="interaction" type="range" min="-0.3" max="0.3" step="0.02" value="0.18"><small>Coefficient b3: slope change per discount point</small></div>
+          <div class="control"><label for="discount">Selected discount <output id="discountOut">10%</output></label><input id="discount" type="range" min="0" max="30" step="1" value="10"><small>Moves the highlighted 2D slice</small></div>
+          <div class="control"><label for="ads">Selected ad spending <output id="adsOut">$10k</output></label><input id="ads" type="range" min="0" max="20" step="1" value="10"><small>Moves the point on both views</small></div>
+        </form>
+
+        <div class="visual-stack">
+          <div>
+            <div class="chart-top"><h3>2D slices: revenue versus ad spending</h3><div class="legend" aria-hidden="true"><span><i></i>0% discount</span><span><i class="current"></i>selected discount</span><span><i class="high"></i>30% discount</span></div></div>
+            <div class="chart-frame"><svg id="sliceChart" viewBox="0 0 720 360" role="img" aria-labelledby="sliceTitle sliceDesc"><title id="sliceTitle">Revenue versus ad spending at three discount rates</title><desc id="sliceDesc">Three lines show how the slope of revenue on advertising changes with discount rate.</desc></svg></div>
+            <div class="live-reading" aria-live="polite">
+              <div class="slope-card"><span>Highlighted ad slope</span><strong id="slopeValue">3 + 0.18(10) = 4.80</strong><p id="slopeSentence">At a 10% discount, another $1k in ads is associated with $4.80k more weekly revenue.</p></div>
+              <div class="point-card"><span>Selected prediction</span><strong id="predictionValue">$100.0k weekly revenue</strong><p id="predictionInputs">for $10k ads and a 10% discount</p></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="chart-top"><div><h3>3D view: the full fitted surface</h3><p class="orbit-hint" id="orbitHint">Drag the surface to orbit, or use the controls.</p></div><div class="view-controls"><label class="view-control" for="rotation">Turn <input id="rotation" type="range" min="-180" max="180" step="1" value="43"><output id="rotationOut">43 deg</output></label><label class="view-control" for="tilt">Tilt <input id="tilt" type="range" min="-65" max="65" step="1" value="28"><output id="tiltOut">28 deg</output></label><button class="button view-reset" id="resetView" type="button">Reset view</button></div></div>
+            <div class="chart-frame surface-frame"><svg id="surfaceChart" viewBox="0 0 720 430" role="img" aria-labelledby="surfaceTitle surfaceDesc" aria-describedby="orbitHint"><title id="surfaceTitle">Three-dimensional fitted revenue surface</title><desc id="surfaceDesc">A wireframe surface displays predicted revenue over ad spending and discount rate. A highlighted line is the selected discount slice. Drag horizontally to turn the surface and vertically to tilt it.</desc></svg></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="lesson" aria-labelledby="read-title">
+      <div class="section-head"><div><h2 id="read-title">How to read a quantitative interaction</h2><p>The product term changes a slope; it does not replace either main effect.</p></div></div>
+      <div class="checks">
+        <article class="step"><strong>1 &middot; Choose a moderator value</strong><p>To interpret the ad effect, first choose a discount rate such as 10%.</p></article>
+        <article class="step"><strong>2 &middot; Compute the conditional slope</strong><p>Insert that discount into <code>b1 + b3d</code>. With the defaults: <code>3 + .18(10) = 4.8</code>.</p></article>
+        <article class="step"><strong>3 &middot; Compare slopes</strong><p>Two discount rates that differ by 5 points have ad slopes that differ by <code>5b3</code>. When <code>b3 = 0</code>, all slices are parallel.</p></article>
+      </div>
+    </section>
+    <p class="footer">The values are simulated for teaching. Association from this fitted model is not automatically a causal effect.</p>
+  </main>
+  <script src="quantitative-quantitative-interaction.js?v=4"></script>
+</body>
+</html>
