@@ -524,11 +524,15 @@
     const purposeLabels={debt_consolidation:'Debt consolidation',credit_card:'Credit card',small_business:'Small business'};
     app.innerHTML=`
       <section class="demo-callout"><strong>One model creates three differently shaped views.</strong> Log odds change in a straight line, odds change exponentially, and probability follows an S-curve.</section>
+      <div id="w12-equation" class="demo-equation">
+        <span>log(p/(1−p)) = −4.25 + 0.072(credit score) + ${fmt(purposeEffects.credit_card,2)}(credit_card) − ${fmt(Math.abs(purposeEffects.small_business),2)}(small_business)</span>
+        <small class="w12-equation-note">credit_card and small_business are dummy variables: 1 for that loan purpose, 0 otherwise. For debt consolidation, both equal 0.</small>
+      </div>
       <div class="demo-grid equal">
         <section class="demo-card demo-controls">
           <div class="demo-control"><div class="demo-control-head"><label for="w12-score">Credit score index</label><output id="w12-score-out"></output></div><input id="w12-score" type="range" min="20" max="100" step="1" value="65"></div>
           <div class="demo-control"><label for="w12-purpose">Loan purpose</label><select id="w12-purpose">${Object.entries(purposeLabels).map(([value,label])=>`<option value="${value}">${label}</option>`).join('')}</select></div>
-          <div id="w12-equation" class="demo-equation"></div><div class="demo-reading"><strong>Conversions:</strong> odds = p/(1−p), and p = odds/(1+odds). A one-unit predictor change multiplies the odds by e<sup>β</sup>.</div>
+          <div class="demo-reading"><strong>Conversions:</strong> odds = p/(1−p), and p = odds/(1+odds). A one-unit predictor change multiplies the odds by e<sup>β</sup>.</div>
         </section>
         <section class="demo-stack">
           <div class="demo-stat-grid"><div class="demo-stat"><span>Log odds</span><strong id="w12-logodds"></strong></div><div class="demo-stat"><span>Odds</span><strong id="w12-odds"></strong></div><div class="demo-stat"><span>Probability</span><strong id="w12-prob"></strong></div></div><div id="w12-reading" class="demo-reading"></div>
@@ -552,7 +556,7 @@
       markup+=`<line x1="${frame.x(score)}" y1="${frame.y(yMin)}" x2="${frame.x(score)}" y2="${frame.y(value)}" class="demo-zero"/><circle cx="${frame.x(score)}" cy="${frame.y(value)}" r="7" class="demo-point-secondary"/><text x="${frame.x(score)}" y="${frame.y(value)-11}" text-anchor="middle" class="demo-label">${yLabel==='Probability'?pct(value):fmt(value,2)}</text>`;
       byId(id).innerHTML=`<title>${title}</title>${markup}`;
     };
-    const update=()=>{const score=+byId('w12-score').value,purpose=byId('w12-purpose').value,z=logOdds(score,purpose),odds=Math.exp(z),probability=logistic(z);byId('w12-score-out').value=score;byId('w12-logodds').textContent=fmt(z,2);byId('w12-odds').textContent=`${fmt(odds,2)} : 1`;byId('w12-prob').textContent=pct(probability);byId('w12-equation').textContent=`log(p/(1−p)) = −4.25 + 0.072(credit score) ${purposeEffects[purpose]<0?'−':'+'} ${fmt(Math.abs(purposeEffects[purpose]),2)}(${purposeLabels[purpose]})`;byId('w12-reading').innerHTML=`<strong>At score ${score},</strong> the same fitted value appears as ${fmt(z,2)} log odds, ${fmt(odds,2)}:1 odds, and ${pct(probability)} probability for a ${purposeLabels[purpose].toLowerCase()} loan.`;
+    const update=()=>{const score=+byId('w12-score').value,purpose=byId('w12-purpose').value,z=logOdds(score,purpose),odds=Math.exp(z),probability=logistic(z);byId('w12-score-out').value=score;byId('w12-logodds').textContent=fmt(z,2);byId('w12-odds').textContent=`${fmt(odds,2)} : 1`;byId('w12-prob').textContent=pct(probability);byId('w12-reading').innerHTML=`<strong>At score ${score},</strong> the same fitted value appears as ${fmt(z,2)} log odds, ${fmt(odds,2)}:1 odds, and ${pct(probability)} probability for a ${purposeLabels[purpose].toLowerCase()} loan.`;
       drawPlot('w12-logodds-chart','Log odds increase linearly with credit score',-4,4,'Log odds',value=>value);
       drawPlot('w12-odds-chart','Odds increase exponentially with credit score',0,30,'Odds',value=>Math.exp(value));
       drawPlot('w12-probability-chart','Probability follows an S-shaped logistic curve',0,1,'Probability',value=>logistic(value));
@@ -720,7 +724,19 @@
         </section>
       </div>`;
     const update=()=>{const threshold=+byId('w13-threshold').value;let tp=0,fp=0,fn=0,tn=0;rows.forEach(row=>{const predicted=row.probability>=threshold;if(predicted&&row.actual)tp++;else if(predicted&&!row.actual)fp++;else if(!predicted&&row.actual)fn++;else tn++;});const tpr=tp/(tp+fn),fpr=fp/(fp+tn),accuracy=(tp+tn)/rows.length;byId('w13-threshold-out').value=fmt(threshold,2);byId('w13-tp').textContent=tp;byId('w13-fp').textContent=fp;byId('w13-fn').textContent=fn;byId('w13-tn').textContent=tn;byId('w13-tpr').textContent=pct(tpr);byId('w13-fpr').textContent=pct(fpr);byId('w13-accuracy').textContent=pct(accuracy);byId('w13-reading').innerHTML=threshold<.5?'<strong>Lower threshold:</strong> sensitivity rises because fewer actual repayments are missed, but more non-repayments are incorrectly approved.':threshold>.5?'<strong>Higher threshold:</strong> false positives fall, but more actual repayments become false negatives.':'<strong>0.50 is conventional, not automatically optimal.</strong> The right cutoff depends on the relative costs of false approvals and false rejections.';
-      const frame=axes({w:760,h:350,l:64,r:20,t:20,b:52,xmin:0,xmax:1,ymin:-.5,ymax:1.5,xLabel:'Predicted probability',yLabel:'Actual outcome',xTicks:5,yTicks:2});let markup=frame.markup+`<line x1="${frame.x(threshold)}" y1="${frame.t}" x2="${frame.x(threshold)}" y2="${frame.h-frame.b}" class="demo-zero"/><text x="${frame.x(threshold)+5}" y="${frame.t+14}" class="demo-tick">threshold ${fmt(threshold,2)}</text>`;markup+=rows.map(row=>{const jitter=((row.id*29)%19-9)/55;return`<circle cx="${frame.x(row.probability)}" cy="${frame.y(row.actual+jitter)}" r="4" fill="${row.actual?'var(--teal)':'var(--red)'}" fill-opacity=".55"/>`;}).join('');byId('w13-chart').innerHTML=`<title>Classification threshold and outcomes</title>${markup}`;};
+      const frame=axes({w:760,h:350,l:64,r:20,t:20,b:52,xmin:0,xmax:1,ymin:-.5,ymax:1.5,xLabel:'Predicted probability',yLabel:'Actual outcome',xTicks:5,yTicks:2});
+      const cutoffX=frame.x(threshold),plotRight=frame.w-frame.r,plotBottom=frame.h-frame.b;
+      let markup=`
+        <rect class="w13-negative-region" x="${frame.l}" y="${frame.t}" width="${cutoffX-frame.l}" height="${plotBottom-frame.t}" fill="var(--blue)" fill-opacity=".10"/>
+        <rect class="w13-positive-region" x="${cutoffX}" y="${frame.t}" width="${plotRight-cutoffX}" height="${plotBottom-frame.t}" fill="var(--gold)" fill-opacity=".12"/>
+        ${frame.markup}
+        <text x="${(frame.l+cutoffX)/2}" y="${frame.t+17}" text-anchor="middle" class="demo-label" style="fill:var(--blue)">Negatives</text>
+        <text x="${(cutoffX+plotRight)/2}" y="${frame.t+17}" text-anchor="middle" class="demo-label" style="fill:var(--orange)">Positives</text>
+        <line x1="${cutoffX}" y1="${frame.t}" x2="${cutoffX}" y2="${plotBottom}" class="demo-zero"/>
+        <text x="${cutoffX}" y="${plotBottom-8}" text-anchor="middle" class="demo-tick">threshold ${fmt(threshold,2)}</text>`;
+      markup+=rows.map(row=>{const jitter=((row.id*29)%19-9)/55;return`<circle cx="${frame.x(row.probability)}" cy="${frame.y(row.actual+jitter)}" r="4" fill="${row.actual?'var(--teal)':'var(--red)'}" fill-opacity=".55"/>`;}).join('');
+      byId('w13-chart').innerHTML=`<title>Classification threshold and outcomes</title><desc>Blue shading on the left shows negative predictions (non-repayment). Gold shading on the right shows positive predictions (repayment). Probabilities at or above ${fmt(threshold,2)} are positive. Point colors show actual outcomes.</desc>${markup}`;
+    };
     byId('w13-threshold').addEventListener('input',update);byId('w13-balance').addEventListener('click',()=>{byId('w13-threshold').value=.5;update();});update();
   }
 
