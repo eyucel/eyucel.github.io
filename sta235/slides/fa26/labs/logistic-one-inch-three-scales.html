@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>One Inch, Three Scales</title>
+<meta name="description" content="Interactive logistic regression of sex on height: log odds add 0.66 per inch, odds multiply by 1.94, and probability does neither.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column; a sticky height control drives every chart, strip and table below it. */
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #151a25;
+  --muted: #5a6377;
+  --line: #dde2ea;
+  --logit: #2a56cf;
+  --odds: #c0550b;
+  --prob: #0b8768;
+  --logit-soft: #e6ecfb;
+  --odds-soft: #fbeadd;
+  --prob-soft: #ddf2ec;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1117; --surface: #161a22; --ink: #e7eaf0; --muted: #98a1b3; --line: #2a303b;
+    --logit: #85a5ff; --odds: #ff9c52; --prob: #3fd2a8;
+    --logit-soft: #1c2540; --odds-soft: #352214; --prob-soft: #122e27;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1117; --surface: #161a22; --ink: #e7eaf0; --muted: #98a1b3; --line: #2a303b;
+  --logit: #85a5ff; --odds: #ff9c52; --prob: #3fd2a8;
+  --logit-soft: #1c2540; --odds-soft: #352214; --prob-soft: #122e27;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.6; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+
+.wrap {
+  max-width: 920px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 48px 96px;
+  display: flex; flex-direction: column; gap: 64px;
+}
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.08; }
+h1 { font-size: clamp(2.6rem, 7vw, 4.6rem); font-weight: 800; letter-spacing: -0.03em; }
+h2 { font-size: clamp(1.6rem, 3.6vw, 2.2rem); font-weight: 700; letter-spacing: -0.015em; }
+h3 { font-size: 1.25rem; font-weight: 700; }
+p { margin: 0; max-width: 65ch; }
+.eyebrow { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.c-logit { color: var(--logit); } .c-odds { color: var(--odds); } .c-prob { color: var(--prob); }
+section { display: flex; flex-direction: column; gap: 20px; }
+
+/* Hero */
+.hero { display: flex; flex-direction: column; gap: 20px; }
+.hero h1 .w { display: inline-block; }
+.hero h1 .w1 { color: var(--logit); } .hero h1 .w2 { color: var(--odds); } .hero h1 .w3 { color: var(--prob); }
+.lede { font-size: 1.15rem; }
+.model {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding-block: 18px;
+}
+.model code { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); }
+.eq { font-family: var(--body); font-size: 1.35rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.frac { display: inline-flex; flex-direction: column; align-items: center; font-size: 0.85em; line-height: 1.15; vertical-align: middle; }
+.frac span:first-child { border-bottom: 1.5px solid currentColor; padding: 0 4px; }
+.eq .paren { font-size: 1.6em; font-weight: 300; line-height: 1; }
+
+/* Sticky control */
+.controls {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding-block: 12px;
+  display: grid; grid-template-columns: auto 1fr auto; gap: 10px 18px; align-items: center;
+}
+.hread { display: flex; align-items: baseline; gap: 10px; min-width: 9.5em; }
+.hread .big { font-family: var(--display); font-weight: 800; font-size: 1.9rem; letter-spacing: -0.02em; }
+.hread .small { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.btns { display: flex; gap: 6px; }
+button {
+  font: 600 0.85rem var(--mono); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--logit); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type=range] { width: 100%; accent-color: var(--ink); min-width: 0; }
+@media (max-width: 560px) {
+  .controls { grid-template-columns: minmax(0, 1fr); }
+  .hread { min-width: 0; }
+  .btns { flex-wrap: wrap; }
+  .btns button { flex: 1 1 auto; }
+}
+
+/* Pipeline */
+.pipe { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 12px; align-items: stretch; }
+.station { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.station .label { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.station .val { font-family: var(--display); font-weight: 800; font-size: 2.3rem; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.station .work { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); overflow-wrap: anywhere; }
+.station .gloss { font-size: 0.92rem; color: var(--muted); }
+.station.s-logit { border-top: 4px solid var(--logit); }
+.station.s-odds { border-top: 4px solid var(--odds); }
+.station.s-prob { border-top: 4px solid var(--prob); }
+.arrow { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted); font-family: var(--mono); font-size: 0.78rem; }
+.arrow .glyph { font-size: 1.5rem; line-height: 1; }
+@media (max-width: 760px) {
+  .pipe { grid-template-columns: 1fr; }
+  .arrow { flex-direction: row; gap: 10px; }
+  .arrow .glyph { transform: rotate(90deg); }
+}
+
+/* Chart panels */
+.panel { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.panel .head { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; padding: 18px 20px 0; }
+.tag { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; }
+.tag.t-logit { background: var(--logit-soft); color: var(--logit); }
+.tag.t-odds { background: var(--odds-soft); color: var(--odds); }
+.tag.t-prob { background: var(--prob-soft); color: var(--prob); }
+.plot { min-width: 0; padding: 8px 4px 8px 8px; }
+.plot svg { display: block; width: 100%; height: 260px; overflow: visible; }
+.readout { border-left: 1px solid var(--line); padding: 18px; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+.readout .ft { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.readout .delta { font-family: var(--display); font-weight: 800; font-size: 2.4rem; letter-spacing: -0.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.readout .note { font-size: 0.9rem; color: var(--muted); }
+.panel .foot { grid-column: 1 / -1; padding: 0 20px 16px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.panel .foot p { font-size: 0.92rem; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 6px 10px; font-size: 0.78rem; }
+@media (max-width: 700px) {
+  .panel { grid-template-columns: minmax(0, 1fr); }
+  .readout { border-left: 0; border-top: 1px solid var(--line); flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+  .readout .note { flex-basis: 100%; }
+  .plot svg { height: 220px; }
+}
+
+svg .grid { stroke: var(--line); stroke-width: 1; }
+svg .axis-t { fill: var(--muted); font: 11px var(--mono); }
+svg .axis-title { fill: var(--muted); font: 600 11px var(--mono); letter-spacing: 0.06em; }
+svg .ref { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 2 4; }
+svg .ref-t { fill: var(--muted); font: italic 12px var(--body); }
+svg .curve { fill: none; stroke-width: 2.5; stroke-linejoin: round; }
+svg .stair { fill: none; stroke-width: 1.25; opacity: 0.35; }
+svg .run { stroke-width: 1.5; stroke-dasharray: 4 3; }
+svg .rise { stroke-width: 4.5; stroke-linecap: round; }
+svg .guide { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+svg .lbl { font: 700 15px var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 5px; stroke-linejoin: round; }
+svg .pt { stroke: var(--surface); stroke-width: 2; }
+svg .tick-dot { fill: var(--surface); stroke-width: 1.5; }
+
+/* Strips */
+.strips { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+.strip { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; align-items: end; }
+.strip .name { display: flex; flex-direction: column; gap: 2px; }
+.strip .name b { font-family: var(--display); font-size: 1rem; }
+.strip .name span { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 64px; border-bottom: 1px solid var(--line); }
+.bars button { flex: 1; min-width: 0; padding: 0; border: 0; border-radius: 3px 3px 0 0; background: var(--c); opacity: 0.32; transition: opacity .2s, height .3s; }
+.bars button:hover { opacity: 0.6; }
+.bars button.on { opacity: 1; }
+.xlab { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+@media (max-width: 640px) { .strip { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+
+/* Ledger */
+.tablebox { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-family: var(--mono); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 12px; text-align: right; white-space: nowrap; }
+th { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); }
+th:first-child, td:first-child { text-align: left; }
+tbody tr { cursor: pointer; border-bottom: 1px solid var(--line); }
+tbody tr:last-child { border-bottom: 0; }
+tbody tr:hover td { background: color-mix(in srgb, var(--line) 40%, transparent); }
+td.k-logit { background: var(--logit-soft); color: var(--logit); font-weight: 600; }
+td.k-odds { background: var(--odds-soft); color: var(--odds); font-weight: 600; }
+td.k-prob { color: var(--prob); font-weight: 600; }
+.pbar { display: inline-block; height: 8px; border-radius: 2px; background: var(--prob); vertical-align: middle; margin-left: 8px; }
+tr.hl td { box-shadow: inset 0 1px 0 var(--ink), inset 0 -1px 0 var(--ink); }
+tr.hl td:first-child { font-weight: 600; }
+
+/* Closing */
+.why { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.why div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+.why .big { font-family: var(--display); font-weight: 800; font-size: 1.7rem; }
+.why p { font-size: 0.95rem; }
+@media (max-width: 760px) { .why { grid-template-columns: 1fr; } }
+.formula { font-family: var(--mono); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font-size: 0.95rem; overflow-x: auto; }
+.fine { font-size: 0.85rem; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
+    <p class="eyebrow">Logistic regression · OkCupid profiles, n = 59,826</p>
+    <h1><span class="w">One inch,</span> <span class="w">three scales</span></h1>
+    <p class="lede">Every OkCupid dating profile lists a height and a sex. In this set of 59,826 profiles, each person is listed as either male or female, and on average the men are several inches taller. Height alone is enough to guess which group a profile belongs to about 83% of the time.</p>
+    <p>We took that data and ran a logistic regression of sex on each person's stated height. The result is a single equation, but you can read its output in three ways: as <b class="c-logit">log odds</b>, as <b class="c-odds">odds</b>, or as a <b class="c-prob">probability</b>. Add one inch of height and each scale responds differently.</p>
+    <div class="model">
+      <div class="eq">
+        <span>log</span><span class="paren">(</span><span class="frac"><span>p</span><span>1 − p</span></span><span class="paren">)</span>
+        <span>=</span><span class="num">−44.45</span><span>+</span><span class="num c-logit"><b>0.66</b></span><span>· height</span>
+      </div>
+      <code>glm(male ~ height, family = binomial)</code>
+    </div>
+    <p>Here <i>p</i> = P(male) and height is in inches. That <b class="c-logit">0.66</b> is the whole story. Follow it through the three scales below.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Height control">
+    <div class="hread"><span class="big" id="h-ft">5′7″</span><span class="small" id="h-in">67 in → 68 in</span></div>
+    <input type="range" id="h" min="60" max="75" step="1" value="67" aria-label="Height in inches">
+    <div class="btns">
+      <button id="minus" aria-label="One inch shorter">−1″</button>
+      <button id="plus" aria-label="One inch taller">+1″</button>
+      <button id="play" aria-pressed="false">Walk 60″→76″</button>
+    </div>
+  </div>
+
+  <section>
+    <p class="eyebrow">Step 1</p>
+    <h2>From height to probability in three moves</h2>
+    <p>Plug a height into the equation and you get log odds. Exponentiate to get odds. Divide odds by one plus odds to get a probability. These are three descriptions of the same prediction.</p>
+    <div class="pipe">
+      <div class="station s-logit">
+        <span class="label c-logit">Log odds</span>
+        <span class="val c-logit" id="p-l">−0.10</span>
+        <span class="work" id="p-lw">−44.449 + 0.6619 × 67</span>
+        <span class="gloss">Any number from −∞ to ∞. Zero means a coin flip.</span>
+      </div>
+      <div class="arrow" aria-hidden="true"><span class="glyph">→</span><span>e<sup>x</sup></span></div>
+      <div class="station s-odds">
+        <span class="label c-odds">Odds</span>
+        <span class="val c-odds" id="p-o">0.90</span>
+        <span class="work" id="p-ow">e^(−0.10)</span>
+        <span class="gloss" id="p-og">Male profiles per female profile at this height.</span>
+      </div>
+      <div class="arrow" aria-hidden="true"><span class="glyph">→</span><span>x / (1 + x)</span></div>
+      <div class="station s-prob">
+        <span class="label c-prob">P(male)</span>
+        <span class="val c-prob" id="p-p">47.5%</span>
+        <span class="work" id="p-pw">0.90 / (1 + 0.90)</span>
+        <span class="gloss">Squeezed between 0 and 1.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 2</p>
+    <h2>Now add one inch</h2>
+    <p id="sentence">Going from 5′7″ to 5′8″ …</p>
+
+    <div class="panel">
+      <div class="head"><h3 class="c-logit">Log odds: add 0.66, every time</h3><span class="tag t-logit">constant · additive</span></div>
+      <div class="plot"><svg id="c-logit" role="img" aria-label="Log odds of male against height: a straight line"></svg></div>
+      <div class="readout">
+        <span class="ft num" id="r-l-ft"></span>
+        <span class="delta c-logit" id="r-l-d">+0.66</span>
+        <span class="note">The same step at every height. The faint staircase has identical risers.</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="head"><h3 class="c-odds">Odds: multiply by 1.94, every time</h3><span class="tag t-odds">constant · multiplicative</span></div>
+      <div class="plot"><svg id="c-odds" role="img" aria-label="Odds of male against height: an exponential curve"></svg></div>
+      <div class="readout">
+        <span class="ft num" id="r-o-ft"></span>
+        <span class="delta c-odds" id="r-o-d">×1.94</span>
+        <span class="note" id="r-o-n"></span>
+      </div>
+      <div class="foot">
+        <div class="seg" role="group" aria-label="Odds axis scale">
+          <button id="lin" aria-pressed="true">Linear axis</button>
+          <button id="log" aria-pressed="false">Log axis</button>
+        </div>
+        <p id="odds-note">e<sup>0.66</sup> = 1.94. The amount added keeps growing, but the multiplier never changes.</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="head"><h3 class="c-prob">Probability: neither</h3><span class="tag t-prob">not constant</span></div>
+      <div class="plot"><svg id="c-prob" role="img" aria-label="Probability of male against height: an S-shaped curve"></svg></div>
+      <div class="readout">
+        <span class="ft num" id="r-p-ft"></span>
+        <span class="delta c-prob" id="r-p-d">+16.2 pts</span>
+        <span class="note" id="r-p-n"></span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 3</p>
+    <h2>What each inch buys, from 60″ to 76″</h2>
+    <p>Each bar is one inch of height. The two constant rows are flat, while the bottom two are not. Tap a bar to jump there.</p>
+    <div class="strips" id="strips"></div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 4</p>
+    <h2>The full ledger</h2>
+    <p>Read down the shaded columns: <span class="c-logit">+0.66</span> on every row, <span class="c-odds">×1.94</span> on every row. The probability change rises to a peak near 67″ and falls off again.</p>
+    <div class="tablebox">
+      <table>
+        <thead><tr>
+          <th>Height</th><th>Log odds</th><th>Change</th><th>Odds</th><th>Change</th><th>P(male)</th><th>Change</th>
+        </tr></thead>
+        <tbody id="ledger"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Why</p>
+    <h2>Why probability bends</h2>
+    <div class="why">
+      <div><span class="big c-logit">Add</span><p>The model is linear in log odds. One inch always adds β₁ = 0.66, the way a slope works in ordinary regression.</p></div>
+      <div><span class="big c-odds">Multiply</span><p>Odds = e<sup>log odds</sup>. Adding inside an exponent multiplies outside it: e<sup>a + 0.66</sup> = e<sup>a</sup> × 1.94.</p></div>
+      <div><span class="big c-prob">Bend</span><p>Probability has to stay between 0 and 1, so the same push in log odds moves it a lot near 50% and barely at all near 0% or 100%.</p></div>
+    </div>
+    <p>The size of a one-inch change in probability is close to the slope times p(1 − p):</p>
+    <div class="formula">Δp ≈ 0.66 × p × (1 − p) &nbsp;→&nbsp; largest at p = 0.5: 0.66 × 0.25 ≈ 0.165</div>
+    <p>That's the "divide by 4" rule. The steepest one-inch jump in P(male) is about 0.66 / 4 ≈ 16.5 points, and it happens near 67.2″, where the model is a coin flip. At 60″ or 76″ the same inch moves the probability by less than a point.</p>
+    <p class="fine">Values use the unrounded estimates (−44.449, 0.6619). At 69″ (5′9″) the model gives P(male) = 0.77.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const B0 = -44.44861, B1 = 0.66190, OR = Math.exp(B1);
+  const H0 = 60, H1 = 76;
+  const L = h => B0 + B1 * h;
+  const O = h => Math.exp(L(h));
+  const P = h => 1 / (1 + Math.exp(-L(h)));
+  const MINUS = "−";
+  const sgn = (v, d = 2) => (v < 0 ? MINUS : "") + Math.abs(v).toFixed(d);
+  const plus = (v, d = 2) => (v < 0 ? MINUS : "+") + Math.abs(v).toFixed(d);
+  const fo = v => v < 0.1 ? v.toPrecision(2) : v < 10 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : Math.round(v).toString();
+  const fp = v => (v * 100).toFixed(1) + "%";
+  const ft = h => { const r = Math.round(h); return `${Math.floor(r / 12)}′${r % 12}″`; };
+  const $ = id => document.getElementById(id);
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  let target = 67, shown = 67, oddsLog = false;
+
+  // ---------- Charts ----------
+  const charts = [
+    { id: "c-logit", f: L, color: "--logit",
+      scale: () => ({ type: "lin", lo: -5.5, hi: 6.5, ticks: [-4, -2, 0, 2, 4, 6], fmt: v => sgn(v, 0) }),
+      ref: 0, refLabel: "0 = even odds (50%)", yTitle: "LOG ODDS",
+      label: h => "+" + B1.toFixed(2) },
+    { id: "c-odds", f: O, color: "--odds",
+      scale: () => oddsLog
+        ? { type: "log", lo: 0.005, hi: 700, ticks: [0.01, 0.1, 1, 10, 100], fmt: v => v >= 1 ? String(v) : String(v) }
+        : { type: "lin", lo: 0, hi: 360, ticks: [0, 100, 200, 300], fmt: v => String(v) },
+      ref: 1, refLabel: "1 = even odds", yTitle: "ODDS",
+      label: h => "×" + OR.toFixed(2) },
+    { id: "c-prob", f: P, color: "--prob",
+      scale: () => ({ type: "lin", lo: 0, hi: 1, ticks: [0, 0.25, 0.5, 0.75, 1], fmt: v => Math.round(v * 100) + "%" }),
+      ref: 0.5, refLabel: "50%", yTitle: "P(MALE)",
+      label: h => "+" + ((P(h + 1) - P(h)) * 100).toFixed(1) + " pts" },
+  ];
+  const NS = "http://www.w3.org/2000/svg";
+
+  function setup(c) {
+    const svg = $(c.id);
+    const W = Math.max(280, svg.getBoundingClientRect().width || 640);
+    const H = svg.getBoundingClientRect().height || 260;
+    const m = { l: 50, r: 18, t: 14, b: 40 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const s = c.scale();
+    c.x = h => m.l + (h - H0) / (H1 - H0) * iw;
+    if (s.type === "log") {
+      const a = Math.log(s.lo), b = Math.log(s.hi);
+      c.y = v => m.t + (b - Math.log(Math.max(v, s.lo))) / (b - a) * ih;
+    } else {
+      c.y = v => m.t + (s.hi - Math.min(Math.max(v, s.lo), s.hi)) / (s.hi - s.lo) * ih;
+    }
+    c.W = W; c.H = H; c.m = m;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const col = `var(${c.color})`;
+    let g = "";
+    for (const t of s.ticks) {
+      const y = c.y(t).toFixed(1);
+      g += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}"/>`;
+      g += `<text class="axis-t" x="${m.l - 8}" y="${+y + 4}" text-anchor="end">${s.fmt(t)}</text>`;
+    }
+    const xstep = W < 480 ? 4 : 2;
+    for (let h = H0; h <= H1; h += xstep) {
+      g += `<text class="axis-t" x="${c.x(h).toFixed(1)}" y="${H - m.b + 18}" text-anchor="middle">${h}</text>`;
+    }
+    g += `<text class="axis-title" x="${W - m.r}" y="${H - 4}" text-anchor="end">HEIGHT (INCHES)</text>`;
+    g += `<text class="axis-title" x="${m.l}" y="${m.t - 2}" text-anchor="start" dy="-2">${c.yTitle}</text>`;
+    const ry = c.y(c.ref);
+    if (ry > m.t && ry < H - m.b) {
+      g += `<line class="ref" x1="${m.l}" x2="${W - m.r}" y1="${ry}" y2="${ry}"/>`;
+      g += `<text class="ref-t" x="${m.l + 6}" y="${ry - 6}">${c.refLabel}</text>`;
+    }
+    // faint staircase: one riser per inch
+    let st = "";
+    for (let h = H0; h < H1; h++) st += `M${c.x(h)},${c.y(c.f(h))}H${c.x(h + 1)}V${c.y(c.f(h + 1))}`;
+    g += `<path class="stair" d="${st}" style="stroke:${col}"/>`;
+    let d = "";
+    for (let h = H0; h <= H1 + 1e-9; h += 0.05) d += (d ? "L" : "M") + c.x(h).toFixed(1) + "," + c.y(c.f(h)).toFixed(1);
+    g += `<path class="curve" d="${d}" style="stroke:${col}"/>`;
+    for (let h = H0; h <= H1; h++) g += `<circle class="tick-dot" cx="${c.x(h)}" cy="${c.y(c.f(h))}" r="2.4" style="stroke:${col}"/>`;
+    svg.innerHTML = `<g>${g}</g><g class="dyn"></g>`;
+    c.dyn = svg.querySelector(".dyn");
+  }
+
+  function drawDyn(c, h) {
+    const col = `var(${c.color})`;
+    const a = c.f(h), b = c.f(h + 1);
+    const x0 = c.x(h), x1 = c.x(h + 1), ya = c.y(a), yb = c.y(b);
+    const bottom = c.H - c.m.b;
+    let lx = x1 + 10, anchor = "start";
+    if (lx > c.W - 90) { lx = x0 - 10; anchor = "end"; }
+    let ly = (ya + yb) / 2 + 5;
+    if (Math.abs(ya - yb) < 16) ly = Math.min(ya, yb) - 12;
+    if (ly < c.m.t + 12) ly = c.m.t + 12;
+    c.dyn.innerHTML =
+      `<line class="guide" x1="${x0}" x2="${x0}" y1="${bottom}" y2="${ya}"/>` +
+      `<line class="run" x1="${x0}" x2="${x1}" y1="${ya}" y2="${ya}" style="stroke:${col}"/>` +
+      `<line class="rise" x1="${x1}" x2="${x1}" y1="${ya}" y2="${yb}" style="stroke:${col}"/>` +
+      `<circle class="pt" cx="${x0}" cy="${ya}" r="5.5" style="fill:${col}"/>` +
+      `<circle class="pt" cx="${x1}" cy="${yb}" r="5.5" style="fill:${col}"/>` +
+      `<text class="lbl" x="${lx}" y="${ly}" text-anchor="${anchor}" style="fill:${col}">${c.label(h)}</text>`;
+  }
+
+  function drawCharts() { for (const c of charts) drawDyn(c, shown); }
+  function setupAll() { for (const c of charts) setup(c); drawCharts(); }
+
+  // ---------- Text readouts ----------
+  function updateText() {
+    const h = target, h2 = h + 1;
+    const l = L(h), o = O(h), p = P(h);
+    const l2 = L(h2), o2 = O(h2), p2 = P(h2);
+    const dp = p2 - p, maxdp = B1 / 4;
+    $("h-ft").textContent = ft(h);
+    $("h-in").textContent = `${h} in → ${h2} in`;
+    $("h").value = h;
+
+    $("p-l").textContent = sgn(l);
+    $("p-lw").textContent = `${MINUS}44.449 + 0.6619 × ${h} = ${sgn(l)}`;
+    $("p-o").textContent = fo(o);
+    $("p-ow").textContent = `e^(${sgn(l)}) = ${fo(o)}`;
+    $("p-og").textContent = o >= 1
+      ? `About ${fo(o)} male profiles for every female profile at this height.`
+      : `About ${fo(1 / o)} female profiles for every male profile at this height.`;
+    $("p-p").textContent = fp(p);
+    $("p-pw").textContent = `${fo(o)} / (1 + ${fo(o)}) = ${p.toFixed(3)}`;
+
+    $("sentence").innerHTML =
+      `Going from <b>${ft(h)}</b> to <b>${ft(h2)}</b> adds <b class="c-logit">0.66</b> to the log odds (${sgn(l)} → ${sgn(l2)}), ` +
+      `multiplies the odds by <b class="c-odds">1.94</b> (${fo(o)} → ${fo(o2)}), and raises P(male) from ${fp(p)} to ${fp(p2)}, ` +
+      `a jump of <b class="c-prob">${(dp * 100).toFixed(1)} points</b>. Move the slider and the first two numbers stay put. The third does not.`;
+
+    $("r-l-ft").textContent = `${sgn(l)} → ${sgn(l2)}`;
+    $("r-o-ft").textContent = `${fo(o)} → ${fo(o2)}`;
+    $("r-o-n").textContent = `Here that adds ${fo(o2 - o)} to the odds. The added amount grows with height; the multiplier never changes.`;
+    $("r-p-ft").textContent = `${fp(p)} → ${fp(p2)}`;
+    $("r-p-d").textContent = `+${(dp * 100).toFixed(1)} pts`;
+    const share = dp / maxdp;
+    $("r-p-n").textContent = share > 0.9
+      ? `Near the 50% mark, so this is close to the biggest one-inch jump possible (${(maxdp * 100).toFixed(1)} pts).`
+      : `Only ${Math.round(share * 100)}% of the biggest possible one-inch jump (${(maxdp * 100).toFixed(1)} pts, near 67″). Far from 50%, the curve flattens.`;
+
+    document.querySelectorAll(".bars button").forEach(b => b.classList.toggle("on", +b.dataset.h === h));
+    document.querySelectorAll("#ledger tr").forEach(r => r.classList.toggle("hl", +r.dataset.h === h2));
+    const sv = document.querySelectorAll(".strip .cur");
+    sv.forEach(s => { s.textContent = s.dataset.fn ? rowFns[s.dataset.fn](h) : ""; });
+  }
+
+  // ---------- Strips ----------
+  const rowFns = {
+    dl: h => `${h}″→${h + 1}″: +${(L(h + 1) - L(h)).toFixed(2)}`,
+    or: h => `${h}″→${h + 1}″: ×${(O(h + 1) / O(h)).toFixed(2)}`,
+    ad: h => `${h}″→${h + 1}″: +${fo(O(h + 1) - O(h))}`,
+    dp: h => `${h}″→${h + 1}″: +${((P(h + 1) - P(h)) * 100).toFixed(1)} pts`,
+  };
+  const rows = [
+    { fn: "dl", name: "Change in log odds", color: "--logit", v: h => L(h + 1) - L(h), sub: "Flat. Always +0.66." },
+    { fn: "or", name: "Odds multiplier", color: "--odds", v: h => O(h + 1) / O(h), sub: "Flat. Always ×1.94." },
+    { fn: "ad", name: "Amount added to odds", color: "--odds", v: h => O(h + 1) - O(h), sub: "Explodes, which is why the multiplier is the stable summary." },
+    { fn: "dp", name: "Change in P(male)", color: "--prob", v: h => P(h + 1) - P(h), sub: "Rises, peaks near 67″, falls." },
+  ];
+  function buildStrips() {
+    const box = $("strips");
+    let html = "";
+    for (const r of rows) {
+      const vals = []; for (let h = H0; h < H1; h++) vals.push(r.v(h));
+      const max = Math.max(...vals);
+      const bars = vals.map((v, i) => {
+        const h = H0 + i;
+        return `<button data-h="${h}" style="--c:var(${r.color});height:${Math.max(2, v / max * 100)}%" aria-label="${rowFns[r.fn](h)}"></button>`;
+      }).join("");
+      html += `<div class="strip"><div class="name"><b style="color:var(${r.color})">${r.name}</b><span class="cur" data-fn="${r.fn}"></span><span>${r.sub}</span></div><div class="bars">${bars}</div></div>`;
+    }
+    html += `<div class="strip"><div></div><div class="xlab"><span>60″→61″</span><span>67″→68″</span><span>75″→76″</span></div></div>`;
+    box.innerHTML = html;
+    box.addEventListener("click", e => { const b = e.target.closest("button[data-h]"); if (b) go(+b.dataset.h); });
+  }
+
+  // ---------- Ledger ----------
+  function buildLedger() {
+    const maxdp = B1 / 4;
+    let html = "";
+    for (let h = H0; h <= H1; h++) {
+      const first = h === H0;
+      const dl = first ? "" : "+" + (L(h) - L(h - 1)).toFixed(2);
+      const or = first ? "" : "×" + (O(h) / O(h - 1)).toFixed(2);
+      const dp = first ? 0 : P(h) - P(h - 1);
+      const dpc = first ? "" : `+${(dp * 100).toFixed(1)} pts<span class="pbar" style="width:${(dp / maxdp * 60).toFixed(1)}px"></span>`;
+      html += `<tr data-h="${h}"><td>${ft(h)} <span style="color:var(--muted)">(${h})</span></td>` +
+        `<td>${sgn(L(h))}</td><td class="${first ? "" : "k-logit"}">${dl}</td>` +
+        `<td>${fo(O(h))}</td><td class="${first ? "" : "k-odds"}">${or}</td>` +
+        `<td>${fp(P(h))}</td><td class="k-prob">${dpc}</td></tr>`;
+    }
+    const tb = $("ledger");
+    tb.innerHTML = html;
+    tb.addEventListener("click", e => { const r = e.target.closest("tr"); if (r) go(Math.min(H1 - 1, Math.max(H0, +r.dataset.h - 1))); });
+  }
+
+  // ---------- Motion ----------
+  let raf = 0;
+  function go(h) {
+    target = Math.min(H1 - 1, Math.max(H0, h));
+    updateText();
+    cancelAnimationFrame(raf);
+    if (reduce) { shown = target; drawCharts(); return; }
+    const from = shown, to = target, t0 = performance.now(), dur = 450;
+    const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const tick = now => {
+      const t = Math.min(1, (now - t0) / dur);
+      shown = from + (to - from) * ease(t);
+      drawCharts();
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+  }
+
+  let timer = 0;
+  function stopPlay() { clearInterval(timer); timer = 0; $("play").setAttribute("aria-pressed", "false"); $("play").textContent = "Walk 60″→76″"; }
+  $("play").addEventListener("click", () => {
+    if (timer) return stopPlay();
+    $("play").setAttribute("aria-pressed", "true"); $("play").textContent = "Stop";
+    if (target >= H1 - 1) go(H0);
+    timer = setInterval(() => { if (target >= H1 - 1) return stopPlay(); go(target + 1); }, 1000);
+  });
+  $("h").addEventListener("input", e => { stopPlay(); go(+e.target.value); });
+  $("plus").addEventListener("click", () => { stopPlay(); go(target + 1); });
+  $("minus").addEventListener("click", () => { stopPlay(); go(target - 1); });
+
+  function setScale(isLog) {
+    oddsLog = isLog;
+    $("lin").setAttribute("aria-pressed", String(!isLog));
+    $("log").setAttribute("aria-pressed", String(isLog));
+    $("odds-note").innerHTML = isLog
+      ? "On a log axis the odds curve turns back into a straight line with equal risers. Taking the log turns multiplying by 1.94 into adding 0.66, so this is the log-odds chart with different tick labels."
+      : "e<sup>0.66</sup> = 1.94. On a linear axis the early risers are too small to see and the late ones are huge, yet every one is the same ×1.94. Try the log axis.";
+    setup(charts[1]); drawDyn(charts[1], shown);
+  }
+  $("lin").addEventListener("click", () => setScale(false));
+  $("log").addEventListener("click", () => setScale(true));
+
+  buildStrips();
+  buildLedger();
+  setupAll();
+  setScale(false);
+  updateText();
+  let rt = 0;
+  new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(setupAll, 60); }).observe(document.querySelector(".wrap"));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(setupAll);
+})();
+</script>
+</body>
+</html>
