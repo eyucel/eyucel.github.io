@@ -25,14 +25,7 @@
   --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --body: "Source Serif 4", Georgia, "Times New Roman", serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0e1117; --surface: #161a22; --ink: #e7eaf0; --muted: #98a1b3; --line: #2a303b;
-    --logit: #85a5ff; --odds: #ff9c52; --prob: #3fd2a8;
-    --logit-soft: #1c2540; --odds-soft: #352214; --prob-soft: #122e27;
-    color-scheme: dark;
-  }
+  color-scheme: light;
 }
 :root[data-theme="dark"] {
   --bg: #0e1117; --surface: #161a22; --ink: #e7eaf0; --muted: #98a1b3; --line: #2a303b;
@@ -69,6 +62,8 @@ section { display: flex; flex-direction: column; gap: 20px; }
 .hero h1 .w { display: inline-block; }
 .hero h1 .w1 { color: var(--logit); } .hero h1 .w2 { color: var(--odds); } .hero h1 .w3 { color: var(--prob); }
 .lede { font-size: 1.15rem; }
+.topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.theme-btn { font-size: 0.75rem; padding: 6px 10px; }
 .model {
   display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px;
   border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding-block: 18px;
@@ -207,7 +202,10 @@ tr.hl td:first-child { font-weight: 600; }
 <body>
 <main class="wrap">
   <header class="hero">
-    <p class="eyebrow">Logistic regression · OkCupid profiles, n = 59,826</p>
+    <div class="topline">
+      <p class="eyebrow">Logistic regression · OkCupid profiles, n = 59,826</p>
+      <button class="theme-btn" id="theme" aria-pressed="false">Dark mode</button>
+    </div>
     <h1><span class="w">One inch,</span> <span class="w">three scales</span></h1>
     <p class="lede">Every OkCupid dating profile lists a height and a sex. In this set of 59,826 profiles, each person is listed as either male or female, and on average the men are several inches taller. Height alone is enough to guess which group a profile belongs to about 83% of the time.</p>
     <p>We took that data and ran a logistic regression of sex on each person's stated height. The result is a single equation, but you can read its output in three ways: as <b class="c-logit">log odds</b>, as <b class="c-odds">odds</b>, or as a <b class="c-prob">probability</b>. Add one inch of height and each scale responds differently.</p>
@@ -575,6 +573,19 @@ tr.hl td:first-child { font-weight: 600; }
   }
   $("lin").addEventListener("click", () => setScale(false));
   $("log").addEventListener("click", () => setScale(true));
+
+  const themeBtn = $("theme");
+  function setTheme(dark) {
+    if (dark) document.documentElement.setAttribute("data-theme", "dark");
+    else document.documentElement.removeAttribute("data-theme");
+    themeBtn.setAttribute("aria-pressed", String(dark));
+    themeBtn.textContent = dark ? "Light mode" : "Dark mode";
+    try { localStorage.setItem("one-inch-theme", dark ? "dark" : "light"); } catch (e) {}
+  }
+  let savedDark = false;
+  try { savedDark = localStorage.getItem("one-inch-theme") === "dark"; } catch (e) {}
+  setTheme(savedDark);
+  themeBtn.addEventListener("click", () => setTheme(!document.documentElement.hasAttribute("data-theme")));
 
   buildStrips();
   buildLedger();
