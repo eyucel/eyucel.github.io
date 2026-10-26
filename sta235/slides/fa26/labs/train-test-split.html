@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Train, Test, Repeat</title>
+<meta name="description" content="Interactive train/test split on 117 utility bills: fit polynomials on training data, score them on test data, and see how much one split's luck matters.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column under a sticky split control; the split and the model degree drive every chart. */
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #151a25;
+  --muted: #5a6377;
+  --line: #dde2ea;
+  --fit: #2a56cf;
+  --test: #c0550b;
+  --good: #0b8768;
+  --fit-soft: #e6ecfb;
+  --test-soft: #fbeadd;
+  --good-soft: #ddf2ec;
+  --train-dot: #8a93a6;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #0e1117; --surface: #161a22; --ink: #e7eaf0; --muted: #98a1b3; --line: #2a303b;
+  --fit: #85a5ff; --test: #ff9c52; --good: #3fd2a8;
+  --fit-soft: #1c2540; --test-soft: #352214; --good-soft: #122e27;
+  --train-dot: #6f788b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.6; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+[hidden] { display: none !important; }
+.wrap {
+  max-width: 920px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 48px 96px;
+  display: flex; flex-direction: column; gap: 64px;
+}
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.08; }
+h1 { font-size: clamp(2.6rem, 7vw, 4.6rem); font-weight: 800; letter-spacing: -0.03em; }
+h2 { font-size: clamp(1.6rem, 3.6vw, 2.2rem); font-weight: 700; letter-spacing: -0.015em; }
+p { margin: 0; max-width: 65ch; }
+.eyebrow { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.c-fit { color: var(--fit); } .c-test { color: var(--test); } .c-good { color: var(--good); }
+section { display: flex; flex-direction: column; gap: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; min-width: 0; }
+.fine { font-size: 0.85rem; color: var(--muted); }
+button {
+  font: 600 0.85rem var(--mono); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--fit); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type=range] { width: 100%; accent-color: var(--ink); min-width: 0; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 6px 11px; font-size: 0.8rem; }
+.seg button.mark { text-decoration: underline; text-underline-offset: 3px; }
+.topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.theme-btn { font-size: 0.75rem; padding: 6px 10px; }
+.hero { display: flex; flex-direction: column; gap: 20px; }
+.lede { font-size: 1.15rem; }
+
+/* Sticky split controls */
+.controls {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line); padding-block: 12px;
+  display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
+}
+.controls .grp { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.controls .lab { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.controls .size { flex: 1 1 220px; }
+.controls .size output { font-family: var(--mono); font-size: 0.8rem; white-space: nowrap; min-width: 8.5em; }
+
+svg { display: block; width: 100%; overflow: visible; }
+svg .grid { stroke: var(--line); stroke-width: 1; }
+svg .tl { fill: var(--muted); font: 11px var(--mono); }
+svg .tt { fill: var(--muted); font: 600 11px var(--mono); letter-spacing: 0.06em; }
+svg .trn { fill: var(--train-dot); }
+svg .tst { fill: var(--surface); stroke: var(--test); stroke-width: 2.2; }
+svg .res { stroke: var(--test); stroke-width: 1.5; opacity: 0.8; }
+svg .fitline { fill: none; stroke: var(--fit); stroke-width: 3; stroke-linejoin: round; }
+svg .lbl { font: 700 12px var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+svg .ln { fill: none; stroke-width: 2.5; }
+svg .pt { stroke: var(--surface); stroke-width: 2; cursor: pointer; }
+svg .sel { fill: var(--line); opacity: 0.6; }
+svg .dot { opacity: 0.55; }
+#scatter { height: 330px; }
+#cchart { height: 260px; }
+#luck { height: 240px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+
+.read { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.read > div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.read .label { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.read .val { font-family: var(--display); font-weight: 800; font-size: 2rem; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.read .how { font-size: 0.88rem; color: var(--muted); }
+.read .r-train { border-top: 4px solid var(--fit); }
+.read .r-test { border-top: 4px solid var(--test); }
+@media (max-width: 680px) { .read { grid-template-columns: minmax(0, 1fr); } }
+.degrow { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 12px; }
+.callout { border-left: 3px solid var(--test); padding-left: 14px; }
+.luckbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 12px; }
+.luckbar .status { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.tablebox { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.88rem; font-variant-numeric: tabular-nums; min-width: 520px; }
+th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+th:first-child, td:first-child { text-align: left; }
+tr.best td { background: var(--good-soft); }
+.code { font-family: var(--mono); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font-size: 0.88rem; overflow-x: auto; white-space: pre; }
+a { color: var(--fit); text-underline-offset: .2em; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
+    <div class="topline">
+      <p class="eyebrow">Building models for prediction · 117 monthly utility bills</p>
+      <button class="theme-btn" id="theme" aria-pressed="false">Dark mode</button>
+    </div>
+    <h1>Train, test, repeat</h1>
+    <p class="lede">Each dot is one month of one household's gas bill: the average temperature that month and the gas spend per day. We want a model that predicts <i>next</i> month's bill, not one that just describes the months we already have.</p>
+    <p>The trick is to hide some of the data. Fit the model on the <b>training set</b>, then score it on the <b class="c-test">test set</b>, months the model never saw. The error on the test set, the RMSPE, is our estimate of how it will do on new data.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Train/test split controls">
+    <div class="grp">
+      <span class="lab">Split</span>
+      <div class="seg" role="group" aria-label="How to split">
+        <button id="m-rand" aria-pressed="true">Random</button>
+        <button id="m-hot" aria-pressed="false">Hottest months</button>
+      </div>
+    </div>
+    <div class="grp size">
+      <span class="lab"><label for="ntest">Test size</label></span>
+      <input type="range" id="ntest" min="12" max="58" step="1" value="24">
+      <output id="ntest-out" for="ntest">24 of 117 (21%)</output>
+    </div>
+    <button id="reshuffle">New random split</button>
+  </div>
+
+  <section>
+    <p class="eyebrow">Step 1</p>
+    <h2>Fit on training, score on test</h2>
+    <p>Pick a polynomial degree. The blue curve is fit to the gray training points only. The orange lines show how far each test point lands from that curve. Those misses are what RMSPE measures.</p>
+    <div class="card">
+      <div class="degrow">
+        <span class="fine">Polynomial degree</span>
+        <div class="seg" id="degseg" role="group" aria-label="Polynomial degree"></div>
+      </div>
+      <svg id="scatter" role="img" aria-label="Gas spend per day against temperature, with training points, test points and the fitted curve"></svg>
+      <div class="legend"><span><i style="background:var(--train-dot)"></i>Training month</span><span><i style="background:var(--surface);box-shadow:inset 0 0 0 2px var(--test)"></i>Test month</span><span><i style="background:var(--fit);border-radius:2px;height:3px;width:14px;vertical-align:3px"></i>Model fit to training only</span></div>
+    </div>
+    <div class="read">
+      <div class="r-train"><span class="label">Training RMSE</span><span class="val c-fit" id="r-train">0.73</span><span class="how">How well it fits months it has seen</span></div>
+      <div class="r-test"><span class="label">Test RMSPE</span><span class="val c-test" id="r-test">0.85</span><span class="how">How well it predicts months it hasn't</span></div>
+      <div><span class="label">Gap</span><span class="val" id="r-gap">+16%</span><span class="how" id="r-gaph">Test error is usually worse. That gap is optimism you'd have reported if you'd only checked the training data.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 2</p>
+    <h2>Training error always falls. Test error doesn't.</h2>
+    <p>Here is the same split scored at every degree from 1 to 10. Each extra term gives the curve more freedom to chase the training points, so training error can only go down. Test error drops while the extra terms capture real curvature, then rises once they start fitting noise. That rise is overfitting.</p>
+    <div class="card">
+      <svg id="cchart" role="img" aria-label="Training and test error by polynomial degree"></svg>
+      <div class="legend"><span><i style="background:var(--fit)"></i>Training RMSE</span><span><i style="background:var(--test)"></i>Test RMSPE</span><span><i style="background:var(--good)"></i>Lowest test error</span></div>
+    </div>
+    <p id="best-note"></p>
+    <p class="callout">To choose a model, fit each candidate on the training set, compute RMSPE on the test set, and keep the one with the lowest RMSPE. Never pick based on training error. It always prefers the most complicated model.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 3</p>
+    <h2>One split is one draw. Luck matters.</h2>
+    <p>The test months are chosen at random, so a different shuffle gives a different RMSPE. Draw 200 random splits at the current test size and watch how much the answer moves for the three models from class.</p>
+    <div class="card">
+      <svg id="luck" role="img" aria-label="Test RMSPE across many random splits for degrees 1, 2 and 9"></svg>
+      <div class="luckbar">
+        <button id="draw">Draw 200 splits</button>
+        <span class="status" id="luck-status">Each dot will be one random split. The ring is your current split.</span>
+      </div>
+    </div>
+    <div class="card tablebox">
+      <table>
+        <thead><tr><th>Model</th><th>Training RMSE (all 117)</th><th>Your split's RMSPE</th><th>Average over splits</th><th>Middle 80% of splits</th></tr></thead>
+        <tbody id="ltbody"></tbody>
+      </table>
+    </div>
+    <p>Try changing how many of the 117 utility bills go into the test set, using the <b>Test size</b> slider in the bar at the top, then press <b>Draw 200 splits</b> again.</p>
+    <ul style="margin:0;padding-left:1.2em;max-width:65ch">
+      <li><b>Small test set (12 bills):</b> the dots spread out. Each RMSPE is an average of only 12 misses, so it depends heavily on which 12 bills happened to land in the test set.</li>
+      <li><b>Large test set (58 bills):</b> the dots bunch together, because each RMSPE averages more misses. But now the models are trained on only 59 bills instead of 93, so they're fit with less information.</li>
+    </ul>
+    <p>More test data gives a steadier estimate of prediction error. More training data gives a better model. The common 80/20 split is a compromise between the two.</p>
+    <p>Averaging over many splits instead of trusting one is the idea behind <b>cross-validation</b>. With k-fold CV, every month gets to be in the test set exactly once.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 4</p>
+    <h2>Why the split has to be random</h2>
+    <p>Switch the split to <b>Hottest months</b> in the bar at the top. Now the model trains only on cooler months and is tested on the hottest ones, so it has to extrapolate. The 9th-degree curve has nothing holding it down past the last training point, and its test error explodes. A random split makes the test set look like the data the model will actually face.</p>
+    <div><button id="try-hot">Try it: hold out the hottest months</button></div>
+  </section>
+
+  <section>
+    <p class="eyebrow">In R</p>
+    <h2>The same steps in code</h2>
+    <div class="code">set.seed(9529)
+randomized &lt;- slice_sample(utilities, n = 117)   # shuffle
+utilities_test  &lt;- randomized[1:24, ]            # about 20% for testing
+utilities_train &lt;- randomized[25:117, ]          # the rest for training
+
+model2 &lt;- lm(dailyspend ~ temp + I(temp^2), data = utilities_train)
+predictions2 &lt;- predict(model2, utilities_test)
+sqrt(mean((utilities_test$dailyspend - predictions2)^2))   # RMSPE</div>
+    <p class="fine">Data: 117 monthly bills from the mosaicData <code>Utilities</code> set; dailyspend = gas bill ÷ billing days, temperature in °F. Fit to all 117 months, the degree 1, 2 and 9 models have RSE 0.866, 0.755 and 0.750, matching the course output. Splits here use their own random number generator, so they won't match <code>set.seed(9529)</code> exactly. The page opens on a split that shows the typical pattern; press <b>New random split</b> to see others. Companion lab: <a href="rmse-square-by-square.html">RMSE, Square by Square</a>.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const T = [26,18,24,41,45,60,66,72,72,64,54,37,11,70,76,75,64,51,48,23,28,21,45,51,69,76,72,69,47,34,25,17,29,46,56,67,72,75,69,53,35,25,15,16,35,48,58,64,72,67,71,43,23,15,29,31,54,56,72,78,74,69,56,41,21,30,22,34,53,59,74,78,77,64,50,41,30,24,13,38,46,65,74,76,75,68,58,41,18,15,28,45,55,68,76,75,67,55,39,18,9,23,32,47,61,69,71,72,69,45,46,22,15,20,41,56,60];
+  const Y = [3.1311,3.196,4.6431,0.5471,1.3921,2.8084,1.022,0.2525,0.609,0.6684,1.4203,3.1067,6.8023,0.342,0.4263,0.5839,0.6723,1.1166,1.6242,3.9956,3.5466,3.9183,2.1981,1.6307,0.8076,0.5816,0.6055,0.6053,1.9221,3.0539,4.014,6.45,6.0697,2.7134,1.459,0.8434,0.665,0.6745,0.7027,1.4606,3.6762,4.8266,7.2297,6.6707,4.0058,2.189,1.3586,0.7856,0.5197,0.749,0.6641,3.0521,6.4051,7.464,5.9511,3.547,2.1663,2.2075,0.8531,0.6653,0.6262,0.6978,1.9221,4.6436,7.771,6.0575,6.8314,4.781,1.8966,1.6341,0.5997,0.5457,0.5476,0.8044,1.5903,3.2285,5.1316,5.5675,7.1562,4.0959,2.7587,1.0306,0.7383,0.7623,0.6184,0.818,1.3307,3.1673,6.2874,7.149,5.5767,3.1326,1.7383,0.7231,2.1819,0.9252,0.9603,1.3465,3.2276,5.9774,7.524,5.0972,3.6987,1.9343,1.2443,0.8026,0.762,0.67,0.7412,2.0131,2.1193,3.6525,6.2321,5.2781,2.7293,1.0152,1.3203];
+  const N = T.length, DMAX = 10, LUCK_DEGS = [1, 2, 9];
+  const z = t => (t - 43.5) / 34.5;
+  const $ = id => document.getElementById(id);
+  const f2 = v => isFinite(v) ? v.toFixed(2) : "∞";
+
+  // ---------- Least squares (Householder QR) ----------
+  function fit(idx, d) {
+    const m = idx.length, n = d + 1;
+    const A = Array.from({ length: n }, (_, j) => idx.map(i => Math.pow(z(T[i]), j)));
+    const b = idx.map(i => Y[i]);
+    for (let k = 0; k < n; k++) {
+      let norm = 0; for (let i = k; i < m; i++) norm += A[k][i] * A[k][i];
+      norm = Math.sqrt(norm); if (norm === 0) continue;
+      const alpha = A[k][k] > 0 ? -norm : norm;
+      const v = new Array(m).fill(0);
+      v[k] = A[k][k] - alpha; for (let i = k + 1; i < m; i++) v[i] = A[k][i];
+      let vv = 0; for (let i = k; i < m; i++) vv += v[i] * v[i];
+      if (vv === 0) continue;
+      for (let j = k; j < n; j++) { let s = 0; for (let i = k; i < m; i++) s += v[i] * A[j][i]; s = 2 * s / vv; for (let i = k; i < m; i++) A[j][i] -= s * v[i]; }
+      let s = 0; for (let i = k; i < m; i++) s += v[i] * b[i]; s = 2 * s / vv; for (let i = k; i < m; i++) b[i] -= s * v[i];
+    }
+    const beta = new Array(n).fill(0);
+    for (let k = n - 1; k >= 0; k--) { let s = b[k]; for (let j = k + 1; j < n; j++) s -= A[j][k] * beta[j]; beta[k] = s / A[k][k]; }
+    return beta;
+  }
+  const pred = (beta, t) => { const x = z(t); let s = 0, p = 1; for (const c of beta) { s += c * p; p *= x; } return s; };
+  const rmse = (beta, idx) => Math.sqrt(idx.reduce((s, i) => s + (Y[i] - pred(beta, T[i])) ** 2, 0) / idx.length);
+
+  // ---------- Splits ----------
+  function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function randomSplit(seed, nTest) {
+    const r = mulberry32(seed), idx = [...Array(N).keys()];
+    for (let i = N - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+    return { test: idx.slice(0, nTest), train: idx.slice(nTest) };
+  }
+  function hotSplit(nTest) {
+    const idx = [...Array(N).keys()].sort((a, b) => T[b] - T[a] || a - b);
+    return { test: idx.slice(0, nTest), train: idx.slice(nTest) };
+  }
+
+  const state = { mode: "rand", seed: 1624, nTest: 24, deg: 2 };
+  let split, fits;
+  function recompute() {
+    split = state.mode === "rand" ? randomSplit(state.seed, state.nTest) : hotSplit(state.nTest);
+    fits = [];
+    for (let d = 1; d <= DMAX; d++) { const b = fit(split.train, d); fits[d] = { b, train: rmse(b, split.train), test: rmse(b, split.test) }; }
+  }
+
+  // ---------- Theme ----------
+  const themeBtn = $("theme");
+  function setTheme(dark) {
+    if (dark) document.documentElement.setAttribute("data-theme", "dark");
+    else document.documentElement.removeAttribute("data-theme");
+    themeBtn.setAttribute("aria-pressed", String(dark));
+    themeBtn.textContent = dark ? "Light mode" : "Dark mode";
+    try { localStorage.setItem("one-inch-theme", dark ? "dark" : "light"); } catch (e) {}
+  }
+  let savedDark = false;
+  try { savedDark = localStorage.getItem("one-inch-theme") === "dark"; } catch (e) {}
+  setTheme(savedDark);
+  themeBtn.addEventListener("click", () => setTheme(!document.documentElement.hasAttribute("data-theme")));
+
+  const dims = svg => {
+    const r = svg.getBoundingClientRect();
+    const W = Math.max(300, r.width || 700), H = r.height || 300;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    return { W, H };
+  };
+
+  // ---------- Scatter ----------
+  function drawScatter() {
+    const svg = $("scatter"), { W, H } = dims(svg);
+    const m = { l: 44, r: 14, t: 18, b: 36 };
+    const x = t => m.l + (t - 5) / 80 * (W - m.l - m.r);
+    const y = v => m.t + (9 - v) / 9 * (H - m.t - m.b);
+    let g = `<defs><clipPath id="clip"><rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}"/></clipPath></defs>`;
+    for (let v = 0; v <= 8; v += 2) g += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tl" x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">$${v}</text>`;
+    for (let t = 10; t <= 80; t += 10) g += `<text class="tl" x="${x(t)}" y="${H - m.b + 18}" text-anchor="middle">${t}°</text>`;
+    g += `<text class="tt" x="${m.l}" y="${m.t - 6}">GAS SPEND PER DAY</text><text class="tt" x="${W - m.r}" y="${H - 4}" text-anchor="end">AVERAGE TEMPERATURE (°F)</text>`;
+    const b = fits[state.deg].b;
+    for (const i of split.test) g += `<line class="res" x1="${x(T[i])}" x2="${x(T[i])}" y1="${y(Y[i])}" y2="${y(Math.max(-1, Math.min(10, pred(b, T[i]))))}" clip-path="url(#clip)"/>`;
+    for (const i of split.train) g += `<circle class="trn" cx="${x(T[i])}" cy="${y(Y[i])}" r="3.6"/>`;
+    let d = "";
+    for (let t = 5; t <= 85.001; t += 0.5) { const v = Math.max(-2, Math.min(11, pred(b, t))); d += (d ? "L" : "M") + x(t).toFixed(1) + "," + y(v).toFixed(1); }
+    g += `<path class="fitline" d="${d}" clip-path="url(#clip)"/>`;
+    for (const i of split.test) g += `<circle class="tst" cx="${x(T[i])}" cy="${y(Y[i])}" r="4.6"/>`;
+    svg.innerHTML = g;
+  }
+
+  // ---------- Complexity chart ----------
+  function drawComplexity() {
+    const svg = $("cchart"), { W, H } = dims(svg);
+    const m = { l: 44, r: 14, t: 22, b: 36 };
+    let top = 0; for (let k = 1; k <= DMAX; k++) top = Math.max(top, fits[k].test);
+    const YMAX = Math.min(2, Math.max(1.2, Math.ceil(top * 5) / 5));
+    const x = d => m.l + (d - 1) / (DMAX - 1) * (W - m.l - m.r);
+    const y = v => m.t + (YMAX - Math.min(v, YMAX)) / (YMAX - 0.4) * (H - m.t - m.b);
+    let g = "";
+    const ticks = []; for (let v = 0.4; v <= YMAX + 1e-9; v += YMAX > 1.4 ? 0.4 : 0.2) ticks.push(+v.toFixed(1));
+    for (const v of ticks) g += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tl" x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(1)}</text>`;
+    const half = (W - m.l - m.r) / (DMAX - 1) / 2;
+    g += `<rect class="sel" x="${x(state.deg) - half}" y="${m.t - 8}" width="${half * 2}" height="${H - m.t - m.b + 8}" rx="6"/>`;
+    for (let d = 1; d <= DMAX; d++) g += `<text class="tl" x="${x(d)}" y="${H - m.b + 18}" text-anchor="middle" style="${d === state.deg ? "fill:var(--ink);font-weight:600" : ""}">${d}</text>`;
+    g += `<text class="tt" x="${m.l}" y="${m.t - 10}">ERROR ($ PER DAY)</text><text class="tt" x="${W - m.r}" y="${H - 4}" text-anchor="end">POLYNOMIAL DEGREE</text>`;
+    const line = key => { let d = ""; for (let k = 1; k <= DMAX; k++) d += (d ? "L" : "M") + x(k) + "," + y(fits[k][key]); return d; };
+    g += `<path class="ln" d="${line("train")}" style="stroke:var(--fit)"/><path class="ln" d="${line("test")}" style="stroke:var(--test)"/>`;
+    let best = 1; for (let d = 2; d <= DMAX; d++) if (fits[d].test < fits[best].test) best = d;
+    for (let d = 1; d <= DMAX; d++) {
+      g += `<circle class="pt" data-d="${d}" cx="${x(d)}" cy="${y(fits[d].train)}" r="5" style="fill:var(--fit)"/>`;
+      const over = fits[d].test > YMAX;
+      g += `<circle class="pt" data-d="${d}" cx="${x(d)}" cy="${y(fits[d].test)}" r="${d === best ? 7 : 5}" style="fill:${d === best ? "var(--good)" : "var(--test)"}"/>`;
+      if (over) g += `<text class="lbl" x="${x(d)}" y="${y(YMAX) - 10}" text-anchor="middle" style="fill:var(--test)">${f2(fits[d].test)}↑</text>`;
+    }
+    g += `<text class="lbl" x="${x(best)}" y="${y(fits[best].test) + 22}" text-anchor="middle" style="fill:var(--good)">best: ${fits[best].test.toFixed(2)}</text>`;
+    svg.innerHTML = g;
+    const d9 = fits[9];
+    $("best-note").innerHTML = `On this split the lowest test error is degree <b class="c-good">${best}</b> (${fits[best].test.toFixed(2)}). Degree 10 has the lowest training error (${fits[10].train.toFixed(2)}), but its test error is ${f2(fits[10].test)}. Degree 9 scores ${d9.train.toFixed(2)} on training and ${f2(d9.test)} on test.`;
+  }
+
+  // ---------- Readouts ----------
+  function drawRead() {
+    const f = fits[state.deg];
+    $("r-train").textContent = f.train.toFixed(2);
+    $("r-test").textContent = f2(f.test);
+    const gap = (f.test / f.train - 1) * 100;
+    $("r-gap").textContent = isFinite(gap) ? (gap >= 0 ? "+" : "−") + Math.abs(Math.round(gap)) + "%" : "huge";
+    $("r-gaph").textContent = gap >= 0
+      ? "Test error is worse than training error. That gap is optimism you'd have reported if you'd only checked the training data."
+      : "This split happened to have easy test months, so test error came out lower. That's luck, and Step 3 shows how much it varies.";
+  }
+
+  // ---------- Luck ----------
+  let luck = null, luckAnim = 0;
+  const fullTrain = {};
+  LUCK_DEGS.forEach(d => { const all = [...Array(N).keys()]; fullTrain[d] = rmse(fit(all, d), all); });
+  function drawLuck() {
+    const svg = $("luck"), { W, H } = dims(svg);
+    const m = { l: 92, r: 18, t: 16, b: 36 };
+    const XLO = 0.3, XHI = 2.0;
+    const x = v => m.l + (Math.min(v, XHI) - XLO) / (XHI - XLO) * (W - m.l - m.r);
+    const rowH = (H - m.t - m.b) / LUCK_DEGS.length;
+    let g = "";
+    for (let v = 0.4; v <= 2.0001; v += 0.4) g += `<line class="grid" x1="${x(v)}" x2="${x(v)}" y1="${m.t}" y2="${H - m.b}"/><text class="tl" x="${x(v)}" y="${H - m.b + 18}" text-anchor="middle">${v.toFixed(1)}${v > 1.99 ? "+" : ""}</text>`;
+    g += `<text class="tt" x="${W - m.r}" y="${H - 4}" text-anchor="end">TEST RMSPE ($ PER DAY)</text>`;
+    LUCK_DEGS.forEach((d, r) => {
+      const cy = m.t + rowH * (r + 0.5);
+      const name = d === 1 ? "Linear" : d === 2 ? "Quadratic" : "9th degree";
+      g += `<text class="tl" x="${m.l - 12}" y="${cy + 4}" text-anchor="end" style="fill:var(--ink);font-weight:600">${name}</text>`;
+      g += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${cy}" y2="${cy}" style="stroke-dasharray:2 4"/>`;
+      if (luck) {
+        const vals = luck.vals[d].slice(0, luck.shown);
+        vals.forEach((v, k) => {
+          const jit = ((k * 0.61803) % 1 - 0.5) * rowH * 0.62;
+          g += `<circle class="dot" cx="${x(v)}" cy="${cy + jit}" r="3" style="fill:${v > XHI ? "var(--test)" : "var(--fit)"}"/>`;
+        });
+        if (vals.length) {
+          const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+          g += `<line x1="${x(mean)}" x2="${x(mean)}" y1="${cy - rowH * 0.4}" y2="${cy + rowH * 0.4}" style="stroke:var(--ink);stroke-width:2.5"/>`;
+        }
+      }
+      if (state.mode === "rand") g += `<circle cx="${x(fits[d].test)}" cy="${cy}" r="7" style="fill:none;stroke:var(--test);stroke-width:2.5"/>`;
+    });
+    svg.innerHTML = g;
+    // table
+    const q = (arr, p) => { const s = arr.slice().sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
+    $("ltbody").innerHTML = LUCK_DEGS.map(d => {
+      const name = d === 1 ? "Linear" : d === 2 ? "Quadratic" : "9th degree";
+      let avg = "—", mid = "—";
+      if (luck && luck.shown > 0) {
+        const vals = luck.vals[d].slice(0, luck.shown);
+        avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2);
+        mid = `${q(vals, 0.1).toFixed(2)} to ${f2(q(vals, 0.9))}`;
+      }
+      return `<tr data-d="${d}"><td>${name}</td><td>${fullTrain[d].toFixed(2)}</td><td>${state.mode === "rand" ? f2(fits[d].test) : "—"}</td><td>${avg}</td><td>${mid}</td></tr>`;
+    }).join("");
+    if (luck && luck.shown === luck.total) {
+      const avgs = LUCK_DEGS.map(d => luck.vals[d].reduce((a, b) => a + b, 0) / luck.total);
+      const bi = avgs.indexOf(Math.min(...avgs));
+      document.querySelectorAll("#ltbody tr")[bi].classList.add("best");
+    }
+  }
+  function runLuck() {
+    if (state.mode !== "rand") return;
+    cancelAnimationFrame(luckAnim);
+    const total = 200, vals = {}; LUCK_DEGS.forEach(d => vals[d] = []);
+    let s = (Date.now() & 0xffff) * 7919;
+    for (let k = 0; k < total; k++) {
+      const sp = randomSplit(s + k * 101, state.nTest);
+      LUCK_DEGS.forEach(d => vals[d].push(rmse(fit(sp.train, d), sp.test)));
+    }
+    luck = { vals, total, shown: 0, nTest: state.nTest };
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const step = () => {
+      luck.shown = reduce ? total : Math.min(total, luck.shown + 8);
+      drawLuck();
+      $("luck-status").textContent = `${luck.shown} splits with ${state.nTest} test months each. The black bar is the average; the ring is your current split.`;
+      if (luck.shown < total) luckAnim = requestAnimationFrame(step);
+    };
+    step();
+  }
+  $("draw").addEventListener("click", runLuck);
+
+  // ---------- Controls ----------
+  $("degseg").innerHTML = Array.from({ length: DMAX }, (_, i) => `<button data-d="${i + 1}" class="${[1, 2, 9].includes(i + 1) ? "mark" : ""}" aria-pressed="${i + 1 === state.deg}">${i + 1}</button>`).join("");
+  function setDeg(d) {
+    state.deg = d;
+    document.querySelectorAll("#degseg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.d === d)));
+    drawScatter(); drawComplexity(); drawRead();
+  }
+  $("degseg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setDeg(+b.dataset.d); });
+  $("cchart").addEventListener("click", e => { const c = e.target.closest("[data-d]"); if (c) setDeg(+c.dataset.d); });
+  function setMode(mode) {
+    state.mode = mode;
+    $("m-rand").setAttribute("aria-pressed", String(mode === "rand"));
+    $("m-hot").setAttribute("aria-pressed", String(mode === "hot"));
+    $("reshuffle").disabled = mode !== "rand";
+    $("draw").disabled = mode !== "rand";
+    if (mode !== "rand") $("luck-status").textContent = "Switch the split back to Random to draw random splits.";
+    all();
+  }
+  $("m-rand").addEventListener("click", () => setMode("rand"));
+  $("m-hot").addEventListener("click", () => setMode("hot"));
+  $("try-hot").addEventListener("click", () => { setMode("hot"); setDeg(9); $("scatter").scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); });
+  $("reshuffle").addEventListener("click", () => { state.seed = (Math.random() * 1e9) | 0; all(); });
+  $("ntest").addEventListener("input", e => {
+    state.nTest = +e.target.value;
+    $("ntest-out").textContent = `${state.nTest} of 117 (${Math.round(state.nTest / N * 100)}%)`;
+    if (luck && luck.nTest !== state.nTest) { luck = null; $("luck-status").textContent = "Test size changed. Draw again to see the new spread."; }
+    all();
+  });
+
+  function all() { recompute(); drawScatter(); drawComplexity(); drawRead(); drawLuck(); }
+  all();
+  let rt = 0;
+  new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { drawScatter(); drawComplexity(); drawLuck(); }, 60); }).observe(document.querySelector(".wrap"));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawScatter(); drawComplexity(); drawLuck(); });
+})();
+</script>
+</body>
+</html>
