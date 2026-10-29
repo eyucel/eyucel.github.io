@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How Much to Hold Out?</title>
+<meta name="description" content="Interactive Apple revenue forecast: choose how many recent quarters to hold out, fit a log or linear trend to the rest, and compare the fitted line with its projection.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column under a sticky control bar; the holdout slider drives every chart and table. Same system as the companion labs. */
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #151a25;
+  --muted: #5a6377;
+  --line: #dde2ea;
+  --fit: #2a56cf;
+  --test: #c0550b;
+  --good: #0b8768;
+  --fit-soft: #e6ecfb;
+  --test-soft: #fbeadd;
+  --good-soft: #ddf2ec;
+  --unused: #b9c0cc;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1117; --surface: #161a22; --ink: #e7eaf0; --muted: #98a1b3; --line: #2a303b;
+    --fit: #85a5ff; --test: #ff9c52; --good: #3fd2a8;
+    --fit-soft: #1c2540; --test-soft: #352214; --good-soft: #122e27;
+    --unused: #4a5262;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1117; --surface: #161a22; --ink: #e7eaf0; --muted: #98a1b3; --line: #2a303b;
+  --fit: #85a5ff; --test: #ff9c52; --good: #3fd2a8;
+  --fit-soft: #1c2540; --test-soft: #352214; --good-soft: #122e27;
+  --unused: #4a5262;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.6; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+[hidden] { display: none !important; }
+.wrap {
+  max-width: 920px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 48px 96px;
+  display: flex; flex-direction: column; gap: 64px;
+}
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.08; }
+h1 { font-size: clamp(2.6rem, 7vw, 4.6rem); font-weight: 800; letter-spacing: -0.03em; }
+h2 { font-size: clamp(1.6rem, 3.6vw, 2.2rem); font-weight: 700; letter-spacing: -0.015em; }
+p { margin: 0; max-width: 65ch; }
+.eyebrow { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.c-fit { color: var(--fit); } .c-test { color: var(--test); } .c-good { color: var(--good); }
+section { display: flex; flex-direction: column; gap: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; min-width: 0; }
+.fine { font-size: 0.85rem; color: var(--muted); }
+button {
+  font: 600 0.85rem var(--mono); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--fit); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type=range] { width: 100%; accent-color: var(--ink); min-width: 0; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 6px 11px; font-size: 0.8rem; }
+.topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.theme-btn { font-size: 0.75rem; padding: 6px 10px; }
+.hero { display: flex; flex-direction: column; gap: 20px; }
+.lede { font-size: 1.15rem; }
+.headline {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding-block: 16px;
+}
+.headline .big { font-family: var(--display); font-weight: 800; font-size: clamp(2rem, 5vw, 2.8rem); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.headline .sub { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); }
+
+/* Sticky controls */
+.controls {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line); padding-block: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.controls .row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.controls .lab { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.controls .size { flex: 1 1 260px; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.controls output { font-family: var(--mono); font-size: 0.8rem; white-space: nowrap; min-width: 12.5em; }
+
+svg { display: block; width: 100%; overflow: visible; }
+svg .grid { stroke: var(--line); stroke-width: 1; }
+svg .tl { fill: var(--muted); font: 11px var(--mono); }
+svg .tt { fill: var(--muted); font: 600 11px var(--mono); letter-spacing: 0.06em; }
+svg .lbl { font: 700 12px var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+svg .unused { fill: none; stroke: var(--unused); stroke-width: 1.5; }
+svg .trn { fill: var(--fit); }
+svg .tst { fill: var(--surface); stroke: var(--test); stroke-width: 2.4; }
+svg .res { stroke: var(--test); stroke-width: 2; }
+svg .fitline { fill: none; stroke: var(--fit); stroke-width: 3; stroke-linejoin: round; }
+svg .projline { fill: none; stroke: var(--fit); stroke-width: 3; stroke-dasharray: 7 5; }
+svg .testband { fill: var(--test-soft); opacity: 0.6; }
+svg .trainband { fill: var(--fit-soft); opacity: 0.55; }
+svg .pt { cursor: pointer; }
+#chart { height: 360px; }
+#hist { height: 250px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.legend i.dash { width: 18px; height: 0; border-radius: 0; border-top: 3px dashed var(--fit); vertical-align: 3px; }
+.legend i.solid { width: 18px; height: 3px; border-radius: 2px; background: var(--fit); vertical-align: 3px; }
+
+.read { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.read > div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.read .label { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.read .val { font-family: var(--display); font-weight: 800; font-size: 1.8rem; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.read .how { font-size: 0.85rem; color: var(--muted); }
+.read .r-fit { border-top: 4px solid var(--fit); }
+.read .r-test { border-top: 4px solid var(--test); }
+@media (max-width: 760px) { .read { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .read { grid-template-columns: minmax(0, 1fr); } }
+
+.tablebox { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.88rem; font-variant-numeric: tabular-nums; min-width: 460px; }
+th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+th:first-child, td:first-child { text-align: left; }
+td.miss { color: var(--test); }
+tfoot td { border-bottom: 0; font-weight: 600; }
+.callout { border-left: 3px solid var(--test); padding-left: 14px; }
+.code { font-family: var(--mono); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font-size: 0.88rem; overflow-x: auto; white-space: pre; }
+a { color: var(--fit); text-underline-offset: .2em; }
+ul { margin: 0; padding-left: 1.2em; max-width: 65ch; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
+    <div class="topline">
+      <p class="eyebrow">Building models for prediction · Apple quarterly revenue</p>
+      <button class="theme-btn" id="theme" aria-pressed="false">Dark mode</button>
+    </div>
+    <h1>How much to hold out?</h1>
+    <p class="lede">To test a forecast, we hide the most recent quarters, fit a model to everything before them, and see how well it predicts the quarters it never saw. Choose how many quarters to hold out and which model to fit, and watch the fitted line (solid) and the projection (dashed) change.</p>
+    <div class="headline">
+      <span class="big c-test" id="h-rmspe">Test RMSPE = $19.08B</span>
+      <span class="sub" id="h-sub">Log model, holding out the last 4 quarters, 2025 Q1 to 2025 Q4</span>
+    </div>
+  </header>
+
+  <div class="controls" role="group" aria-label="Holdout controls">
+    <div class="row">
+      <div class="size">
+        <span class="lab"><label for="hq">Hold out the last</label></span>
+        <input type="range" id="hq" min="1" max="20" step="1" value="4">
+        <output id="hq-out" for="hq">4 quarters (1 year)</output>
+      </div>
+    </div>
+    <div class="row">
+      <div class="seg" id="presets" role="group" aria-label="Quick holdout sizes"></div>
+      <div class="seg" role="group" aria-label="Model">
+        <button id="m-log" aria-pressed="true">Log model</button>
+        <button id="m-lin" aria-pressed="false">Linear model</button>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <p class="eyebrow">Step 1</p>
+    <h2>Fit on the past, project into the holdout</h2>
+    <p>Blue dots are the training quarters. The solid line is the model fit to them. The shaded orange band is the holdout: the dashed line carries the same trend forward into quarters the model never saw, and the orange lines are its misses.</p>
+    <div class="card">
+      <svg id="chart" role="img" aria-label="Apple quarterly revenue with the fitted trend and the projection into the holdout quarters"></svg>
+      <div class="legend"><span><i style="background:var(--fit)"></i>Training quarter</span><span><i style="background:var(--surface);box-shadow:inset 0 0 0 2px var(--test)"></i>Held-out quarter (test)</span><span><i class="solid"></i>Fitted line</span><span><i class="dash"></i>Projection</span></div>
+    </div>
+    <div class="read">
+      <div><span class="label">Training</span><span class="val" id="r-n">54</span><span class="how" id="r-span">quarters</span></div>
+      <div><span class="label">Held out</span><span class="val c-test" id="r-h">4</span><span class="how" id="r-hspan">quarters</span></div>
+      <div class="r-fit"><span class="label">Miss on training data</span><span class="val c-fit" id="r-train">13.96</span><span class="how">Typical miss on quarters it saw ($B)</span></div>
+      <div class="r-test"><span class="label">Test RMSPE</span><span class="val c-test" id="r-test">19.08</span><span class="how">Typical miss on held-out quarters ($B)</span></div>
+    </div>
+    <p id="model-note"></p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 2</p>
+    <h2 id="t-title">The 4 held-out forecasts</h2>
+    <p>RMSPE turns these misses into one number: square each miss, average the squares, take the square root.</p>
+    <div class="card tablebox">
+      <table>
+        <thead><tr><th>Quarter</th><th>Actual ($B)</th><th>Forecast ($B)</th><th>Miss</th><th>Miss squared</th></tr></thead>
+        <tbody id="tbody"></tbody>
+        <tfoot>
+          <tr><td>Mean of squares</td><td></td><td></td><td></td><td id="t-mean"></td></tr>
+          <tr><td>Square root = RMSPE</td><td></td><td></td><td></td><td class="c-test" id="t-rmspe"></td></tr>
+        </tfoot>
+      </table>
+    </div>
+    <p id="pattern-note"></p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 3</p>
+    <h2>Every holdout size at once</h2>
+    <p>Each holdout size gives a different test. Here are all of them from 1 to 20 quarters. Click the chart to jump to one.</p>
+    <div class="card">
+      <svg id="hist" role="img" aria-label="Test RMSPE and training miss for every holdout size"></svg>
+      <div class="legend"><span><i style="background:var(--test)"></i>Test RMSPE</span><span><i style="background:var(--fit)"></i>Miss on training data</span><span><i style="background:var(--unused)"></i>Other model's test RMSPE</span><span><i style="background:var(--ink)"></i>Your holdout</span></div>
+    </div>
+    <ul>
+      <li><b>Test error is always bigger.</b> At every holdout size the orange line sits above the blue one. Fit on data the model already saw always looks better than forecasting data it didn't.</li>
+      <li><b>Hold out too little and one quarter decides.</b> With 1 quarter held out, the whole test is 2025 Q4, the holiday quarter, and RMSPE jumps to $29B. With 4 or more, the answer settles between about $16B and $19B.</li>
+      <li><b>Hold out too much and you give up data.</b> Every quarter you hide is one fewer to train on, and the model has to forecast further ahead.</li>
+      <li><b>Which model wins depends on the test.</b> The gray dashed line is the other model. With 4 quarters held out the two are nearly tied ($19.08B for log, $19.28B for linear). The log model wins at some holdout sizes and the linear model at others. Neither one can see seasons, so both miss the same way.</li>
+    </ul>
+    <p class="callout">For quarterly data, holding out the last 4 quarters (one year) is a common choice: enough quarters to see every season once, while keeping almost all the history for training. That's what the lecture uses.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">In R</p>
+    <h2>Choose a holdout, fit both models, forecast</h2>
+    <div class="code">h &lt;- 4                                   # quarters to hold out
+n &lt;- nrow(apple)                         # 58 quarters
+
+training &lt;- apple[1:(n - h), ]           # everything before the holdout
+test &lt;- apple[(n - h + 1):n, ]           # the last h quarters
+
+log_model &lt;- lm(log(Revenue) ~ Period, data = training)
+lin_model &lt;- lm(Revenue ~ Period, data = training)
+
+log_pred &lt;- exp(predict(log_model, test))   # exp() undoes log()
+lin_pred &lt;- predict(lin_model, test)        # already in $B
+
+sqrt(mean((test$Revenue - log_pred)^2))     # RMSPE: 19.08 when h = 4
+sqrt(mean((test$Revenue - lin_pred)^2))     # RMSPE: 19.28 when h = 4</div>
+    <p class="fine">Revenue in billions of dollars, by calendar quarter, 2011 Q3 to 2025 Q4 (58 quarters). The log model is log(Revenue) ~ Period and the linear model is Revenue ~ Period, each fit by least squares to the training quarters. "Miss on training data" is the root mean squared miss in dollars on the training quarters. Companion lab: <a href="train-test-split.html">Train, Test, Repeat</a>.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const REV = [28.27,46.33,39.19,35.02,35.97,54.51,43.6,35.32,37.47,57.59,45.65,37.43,42.12,74.6,58.01,49.6,51.5,75.87,50.56,42.36,46.85,78.35,52.9,45.41,52.58,88.29,61.14,53.26,62.9,84.31,58.02,53.81,64.04,91.82,58.31,59.68,64.7,111.44,89.58,81.43,83.36,123.94,97.28,82.96,90.15,117.15,94.84,81.8,89.5,119.58,90.75,85.78,94.93,124.3,95.4,94,102.5,143.8];
+  const N = REV.length, HMAX = 20;
+  const time = i => 2011.5 + i * 0.25;
+  const qnum = i => { const t = time(i), y = Math.floor(t + 1e-9); return Math.round((t - y) * 4) + 1; };
+  const qlabel = i => `${Math.floor(time(i) + 1e-9)} Q${qnum(i)}`;
+  const $ = id => document.getElementById(id);
+  const MINUS = "−";
+  const sgn = v => (v < 0 ? MINUS : "+") + Math.abs(v).toFixed(2);
+  const qtrs = h => { const y = h / 4; return `${h} quarter${h === 1 ? "" : "s"}${h % 4 === 0 ? ` (${y} year${y === 1 ? "" : "s"})` : ""}`; };
+
+  // Hold out the last h rows; fit log(Revenue) ~ Period ("log") or Revenue ~ Period ("lin") to the rest
+  function model(h, kind) {
+    const nt = N - h;
+    const train = [...Array(nt).keys()], test = []; for (let i = nt; i < N; i++) test.push(i);
+    const xs = train.map(i => i + 1), ys = train.map(i => kind === "log" ? Math.log(REV[i]) : REV[i]);
+    const mx = xs.reduce((a, b) => a + b, 0) / nt, my = ys.reduce((a, b) => a + b, 0) / nt;
+    let sxy = 0, sxx = 0; xs.forEach((x, k) => { sxy += (x - mx) * (ys[k] - my); sxx += (x - mx) ** 2; });
+    const b = sxy / sxx, a = my - b * mx;
+    const f = i => kind === "log" ? Math.exp(a + b * (i + 1)) : a + b * (i + 1);
+    const trainMiss = Math.sqrt(train.reduce((s, i) => s + (REV[i] - f(i)) ** 2, 0) / nt);
+    const preds = test.map(f), miss = test.map((i, k) => REV[i] - preds[k]), sq = miss.map(m => m * m);
+    const mse = sq.reduce((s, v) => s + v, 0) / h;
+    return { h, nt, test, f, trainMiss, preds, miss, sq, mse, rmspe: Math.sqrt(mse), b, growth: Math.exp(b) - 1 };
+  }
+  const ALL = { log: [], lin: [] };
+  for (let h = 1; h <= HMAX; h++) { ALL.log.push(model(h, "log")); ALL.lin.push(model(h, "lin")); }
+  const byH = (h, kind) => ALL[kind || state.kind][h - 1];
+  const NAME = { log: "Log model", lin: "Linear model" };
+
+  const state = { h: 4, kind: "log" };
+  const PRESETS = [4, 6, 8, 12, 16];
+
+  // ---------- Theme ----------
+  const themeBtn = $("theme");
+  const isDark = () => {
+    const t = document.documentElement.getAttribute("data-theme");
+    return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  };
+  function syncThemeBtn() {
+    const dark = isDark();
+    themeBtn.setAttribute("aria-pressed", String(dark));
+    themeBtn.textContent = dark ? "Light mode" : "Dark mode";
+  }
+  function setTheme(dark) {
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    try { localStorage.setItem("one-inch-theme", dark ? "dark" : "light"); } catch (e) {}
+    syncThemeBtn();
+  }
+  try { const saved = localStorage.getItem("one-inch-theme"); if (saved === "dark" || saved === "light") document.documentElement.setAttribute("data-theme", saved); } catch (e) {}
+  syncThemeBtn();
+  themeBtn.addEventListener("click", () => setTheme(!isDark()));
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncThemeBtn);
+
+  const dims = svg => {
+    const r = svg.getBoundingClientRect();
+    const W = Math.max(280, r.width || 700), H = r.height || 300;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    return { W, H };
+  };
+
+  // ---------- Main chart ----------
+  function drawChart() {
+    const svg = $("chart"), { W, H } = dims(svg), M = byH(state.h);
+    const m = { l: 48, r: 16, t: 22, b: 36 };
+    const X0 = 2011.25, X1 = 2026.1;
+    const x = t => m.l + (t - X0) / (X1 - X0) * (W - m.l - m.r);
+    const YMAX = 160;
+    const y = v => m.t + (YMAX - v) / YMAX * (H - m.t - m.b);
+    const cut = time(M.nt) - 0.125;
+    let g = `<defs><clipPath id="clip"><rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}"/></clipPath></defs>`;
+    g += `<rect class="testband" x="${x(cut)}" y="${m.t}" width="${x(time(N - 1) + 0.2) - x(cut)}" height="${H - m.t - m.b}"/>`;
+    const ticks = [0, 20, 40, 60, 80, 100, 120, 140, 160];
+    for (const v of ticks) g += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tl" x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">$${v}</text>`;
+    const step = W < 520 ? 4 : 2;
+    for (let yr = 2012; yr <= 2026; yr += step) g += `<text class="tl" x="${x(yr)}" y="${H - m.b + 18}" text-anchor="middle">${yr}</text>`;
+    g += `<text class="tt" x="${m.l}" y="${m.t - 8}">REVENUE ($ BILLIONS)</text>`;
+    g += `<text class="tt" x="${W - m.r}" y="${m.t - 8}" text-anchor="end" style="fill:var(--test)">HOLDOUT</text>`;
+    g += `<line x1="${x(cut)}" x2="${x(cut)}" y1="${m.t}" y2="${H - m.b}" style="stroke:var(--test);stroke-width:1.5;stroke-dasharray:4 3"/>`;
+    let dFit = "", dProj = "";
+    for (let t = time(0); t <= time(M.nt - 1) + 1e-9; t += 0.0625) { const i = (t - 2011.5) / 0.25; dFit += (dFit ? "L" : "M") + x(t).toFixed(1) + "," + y(M.f(i)).toFixed(1); }
+    for (let t = time(M.nt - 1); t <= time(N - 1) + 1e-9; t += 0.0625) { const i = (t - 2011.5) / 0.25; dProj += (dProj ? "L" : "M") + x(t).toFixed(1) + "," + y(M.f(i)).toFixed(1); }
+    M.test.forEach((i, k) => { g += `<line class="res" x1="${x(time(i))}" x2="${x(time(i))}" y1="${y(REV[i])}" y2="${y(M.preds[k])}" clip-path="url(#clip)"/>`; });
+    g += `<path class="fitline" d="${dFit}" clip-path="url(#clip)"/><path class="projline" d="${dProj}" clip-path="url(#clip)"/>`;
+    for (let i = 0; i < M.nt; i++) g += `<circle class="trn" cx="${x(time(i))}" cy="${y(REV[i])}" r="3.6"/>`;
+    M.test.forEach(i => { g += `<circle class="tst" cx="${x(time(i))}" cy="${y(REV[i])}" r="4.6"/>`; });
+    svg.innerHTML = g;
+  }
+
+  // ---------- Every holdout size ----------
+  function drawHist() {
+    const svg = $("hist"), { W, H } = dims(svg);
+    const m = { l: 44, r: 16, t: 22, b: 36 };
+    const YMAX = 35;
+    const x = h => m.l + (h - 1) / (HMAX - 1) * (W - m.l - m.r);
+    const y = v => m.t + (YMAX - Math.min(v, YMAX)) / YMAX * (H - m.t - m.b);
+    let g = "";
+    for (let v = 0; v <= YMAX; v += 5) g += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tl" x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">$${v}</text>`;
+    for (const h of [1, 4, 8, 12, 16, 20]) g += `<text class="tl" x="${x(h)}" y="${H - m.b + 18}" text-anchor="middle">${h}</text>`;
+    g += `<text class="tt" x="${m.l}" y="${m.t - 8}">TYPICAL MISS ($B)</text><text class="tt" x="${W - m.r}" y="${H - 4}" text-anchor="end">QUARTERS HELD OUT</text>`;
+    const other = state.kind === "log" ? "lin" : "log";
+    const path = (key, kind) => ALL[kind].map((M, k) => (k ? "L" : "M") + x(M.h).toFixed(1) + "," + y(M[key]).toFixed(1)).join("");
+    g += `<path d="${path("rmspe", other)}" style="fill:none;stroke:var(--unused);stroke-width:2;stroke-dasharray:5 4"/>`;
+    g += `<text class="lbl" x="${W - m.r}" y="${y(ALL[other][HMAX - 1].rmspe) - 8}" text-anchor="end" style="fill:var(--muted);font-weight:600">${NAME[other].toLowerCase()}</text>`;
+    g += `<path d="${path("trainMiss", state.kind)}" style="fill:none;stroke:var(--fit);stroke-width:2.5"/>`;
+    g += `<path d="${path("rmspe", state.kind)}" style="fill:none;stroke:var(--test);stroke-width:2.5"/>`;
+    ALL[state.kind].forEach(M => { g += `<circle cx="${x(M.h)}" cy="${y(M.rmspe)}" r="2.5" style="fill:var(--test)"/><circle cx="${x(M.h)}" cy="${y(M.trainMiss)}" r="2.5" style="fill:var(--fit)"/>`; });
+    const M = byH(state.h), right = x(state.h) > W - 120;
+    g += `<line x1="${x(state.h)}" x2="${x(state.h)}" y1="${m.t}" y2="${H - m.b}" style="stroke:var(--ink);stroke-width:1.5;stroke-dasharray:3 3"/>`;
+    g += `<circle cx="${x(state.h)}" cy="${y(M.rmspe)}" r="6" style="fill:var(--test);stroke:var(--surface);stroke-width:2"/>`;
+    g += `<circle cx="${x(state.h)}" cy="${y(M.trainMiss)}" r="6" style="fill:var(--fit);stroke:var(--surface);stroke-width:2"/>`;
+    g += `<text class="lbl" x="${x(state.h) + (right ? -10 : 10)}" y="${y(M.rmspe) - 8}" text-anchor="${right ? "end" : "start"}" style="fill:var(--test)">${M.rmspe.toFixed(2)}</text>`;
+    g += `<text class="lbl" x="${x(state.h) + (right ? -10 : 10)}" y="${y(M.trainMiss) + 18}" text-anchor="${right ? "end" : "start"}" style="fill:var(--fit)">${M.trainMiss.toFixed(2)}</text>`;
+    g += `<rect class="pt" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" style="fill:transparent"/>`;
+    svg.innerHTML = g;
+    svg.onclick = ev => {
+      const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W;
+      setH(Math.round(1 + (px - m.l) / (W - m.l - m.r) * (HMAX - 1)));
+    };
+  }
+
+  // ---------- Text ----------
+  function drawText() {
+    const M = byH(state.h), first = M.nt;
+    $("hq-out").textContent = qtrs(state.h);
+    $("h-rmspe").textContent = `Test RMSPE = $${M.rmspe.toFixed(2)}B`;
+    $("h-sub").textContent = `${NAME[state.kind]}, holding out the last ${qtrs(state.h)}, ${qlabel(first)} to ${qlabel(N - 1)}`;
+    $("r-n").textContent = M.nt;
+    $("r-span").textContent = `quarters, ${qlabel(0)} to ${qlabel(M.nt - 1)}`;
+    $("r-h").textContent = state.h;
+    $("r-hspan").textContent = state.h === 1 ? `quarter, ${qlabel(first)}` : `quarters, ${qlabel(first)} to ${qlabel(N - 1)}`;
+    $("r-train").textContent = M.trainMiss.toFixed(2);
+    $("r-test").textContent = M.rmspe.toFixed(2);
+    $("t-title").textContent = state.h === 1 ? "The 1 held-out forecast" : `The ${state.h} held-out forecasts`;
+    $("tbody").innerHTML = M.test.map((i, k) => `<tr><td>${qlabel(i)}</td><td>${REV[i].toFixed(2)}</td><td>${M.preds[k].toFixed(2)}</td><td class="miss">${sgn(M.miss[k])}</td><td>${M.sq[k].toFixed(2)}</td></tr>`).join("");
+    $("t-mean").textContent = M.mse.toFixed(2);
+    $("t-rmspe").textContent = M.rmspe.toFixed(2);
+    const q4 = M.test.map((i, k) => k).filter(k => qnum(M.test[k]) === 4);
+    const other = M.test.map((i, k) => k).filter(k => qnum(M.test[k]) !== 4);
+    let note = "";
+    if (q4.length && q4.every(k => M.miss[k] > 0) && other.length && other.filter(k => M.miss[k] < 0).length >= other.length * 0.6)
+      note = `Notice the pattern: the forecast is <b>too low</b> in every Q4 (the holiday quarter) and mostly <b>too high</b> in the others. A trend line can't see seasons. `;
+    if (state.h === 1) note += `With only one held-out quarter, RMSPE is just the size of that one miss.`;
+    $("pattern-note").innerHTML = note;
+    document.querySelectorAll("#presets button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.h === state.h)));
+    $("model-note").innerHTML = state.kind === "log"
+      ? `<b>Log model:</b> <code>lm(log(Revenue) ~ Period)</code>. Revenue grows by the same <i>percentage</i> every quarter (about ${(M.growth * 100).toFixed(1)}% here), so in dollars the line bends upward.`
+      : `<b>Linear model:</b> <code>lm(Revenue ~ Period)</code>. Revenue grows by the same number of <i>dollars</i> every quarter (about $${M.b.toFixed(2)}B here), so the line is straight.`;
+  }
+
+  // ---------- Controls ----------
+  $("presets").innerHTML = PRESETS.map(h => `<button data-h="${h}" aria-pressed="${h === state.h}">${h} qtrs</button>`).join("");
+  $("presets").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setH(+b.dataset.h); });
+  $("hq").addEventListener("input", e => setH(+e.target.value));
+  function setModel(kind) {
+    state.kind = kind;
+    $("m-log").setAttribute("aria-pressed", String(kind === "log"));
+    $("m-lin").setAttribute("aria-pressed", String(kind === "lin"));
+    all();
+  }
+  $("m-log").addEventListener("click", () => setModel("log"));
+  $("m-lin").addEventListener("click", () => setModel("lin"));
+  function setH(h) {
+    state.h = Math.max(1, Math.min(HMAX, h));
+    if (+$("hq").value !== state.h) $("hq").value = state.h;
+    all();
+  }
+  function all() { drawChart(); drawHist(); drawText(); }
+  all();
+  let rt = 0;
+  new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { drawChart(); drawHist(); }, 60); }).observe(document.querySelector(".wrap"));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawChart(); drawHist(); });
+})();
+</script>
+</body>
+</html>

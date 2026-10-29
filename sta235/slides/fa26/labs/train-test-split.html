@@ -230,7 +230,7 @@ utilities_train &lt;- randomized[25:117, ]          # the rest for training
 model2 &lt;- lm(dailyspend ~ temp + I(temp^2), data = utilities_train)
 predictions2 &lt;- predict(model2, utilities_test)
 sqrt(mean((utilities_test$dailyspend - predictions2)^2))   # RMSPE</div>
-    <p class="fine">Data: 117 monthly bills from the mosaicData <code>Utilities</code> set; dailyspend = gas bill ÷ billing days, temperature in °F. Fit to all 117 months, the degree 1, 2 and 9 models have RSE 0.866, 0.755 and 0.750, matching the course output. Splits here use their own random number generator, so they won't match <code>set.seed(9529)</code> exactly. The page opens on a split that shows the typical pattern; press <b>New random split</b> to see others. Companion lab: <a href="rmse-square-by-square.html">RMSE, Square by Square</a>.</p>
+    <p class="fine">Data: 117 monthly bills from the mosaicData <code>Utilities</code> set; dailyspend = gas bill ÷ billing days, temperature in °F. Fit to all 117 months, the degree 1, 2 and 9 models have RSE 0.866, 0.755 and 0.750, matching the course output. Splits here use their own random number generator, so they won't match <code>set.seed(9529)</code> exactly. The page opens on a split that shows the typical pattern; press <b>New random split</b> to see others. Companion lab: <a href="fold-by-fold.html">Fold by Fold</a>.</p>
   </section>
 </main>
 

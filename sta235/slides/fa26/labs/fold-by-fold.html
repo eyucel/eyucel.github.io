@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fold by Fold</title>
+<meta name="description" content="Interactive k-fold cross-validation on 117 utility bills: every month takes one turn in the test set, and the fold errors are averaged to pick a model.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column under a sticky control bar; k, the model and the current round drive every chart. Same system as the companion labs. */
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #151a25;
+  --muted: #5a6377;
+  --line: #dde2ea;
+  --fit: #2a56cf;
+  --test: #c0550b;
+  --good: #0b8768;
+  --fit-soft: #e6ecfb;
+  --test-soft: #fbeadd;
+  --good-soft: #ddf2ec;
+  --train-dot: #8a93a6;
+  --fold-a: #c9d0dc;
+  --fold-b: #a9b2c2;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1117; --surface: #161a22; --ink: #e7eaf0; --muted: #98a1b3; --line: #2a303b;
+    --fit: #85a5ff; --test: #ff9c52; --good: #3fd2a8;
+    --fit-soft: #1c2540; --test-soft: #352214; --good-soft: #122e27;
+    --train-dot: #6f788b; --fold-a: #2c3340; --fold-b: #3d4656;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1117; --surface: #161a22; --ink: #e7eaf0; --muted: #98a1b3; --line: #2a303b;
+  --fit: #85a5ff; --test: #ff9c52; --good: #3fd2a8;
+  --fit-soft: #1c2540; --test-soft: #352214; --good-soft: #122e27;
+  --train-dot: #6f788b; --fold-a: #2c3340; --fold-b: #3d4656;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.6; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+[hidden] { display: none !important; }
+.wrap {
+  max-width: 920px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 48px 96px;
+  display: flex; flex-direction: column; gap: 64px;
+}
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.08; }
+h1 { font-size: clamp(2.6rem, 7vw, 4.6rem); font-weight: 800; letter-spacing: -0.03em; }
+h2 { font-size: clamp(1.6rem, 3.6vw, 2.2rem); font-weight: 700; letter-spacing: -0.015em; }
+p { margin: 0; max-width: 65ch; }
+.eyebrow { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.c-fit { color: var(--fit); } .c-test { color: var(--test); } .c-good { color: var(--good); }
+section { display: flex; flex-direction: column; gap: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; min-width: 0; }
+.fine { font-size: 0.85rem; color: var(--muted); }
+button {
+  font: 600 0.85rem var(--mono); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button:focus-visible { outline: 2px solid var(--fit); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 6px 11px; font-size: 0.8rem; }
+.topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.theme-btn { font-size: 0.75rem; padding: 6px 10px; }
+.hero { display: flex; flex-direction: column; gap: 20px; }
+.lede { font-size: 1.15rem; }
+.headline {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding-block: 16px;
+}
+.headline .big { font-family: var(--display); font-weight: 800; font-size: clamp(2rem, 5vw, 2.8rem); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.headline .sub { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); }
+
+/* Sticky controls */
+.controls {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line); padding-block: 12px;
+  display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center;
+}
+.controls .grp { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+.controls .lab { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.controls output { font-family: var(--mono); font-size: 0.8rem; white-space: nowrap; min-width: 7.5em; text-align: center; }
+
+svg { display: block; width: 100%; overflow: visible; }
+svg .grid { stroke: var(--line); stroke-width: 1; }
+svg .tl { fill: var(--muted); font: 11px var(--mono); }
+svg .tt { fill: var(--muted); font: 600 11px var(--mono); letter-spacing: 0.06em; }
+svg .trn { fill: var(--train-dot); }
+svg .tst { fill: var(--surface); stroke: var(--test); stroke-width: 2.2; }
+svg .res { stroke: var(--test); stroke-width: 1.5; opacity: 0.8; }
+svg .fitline { fill: none; stroke: var(--fit); stroke-width: 3; stroke-linejoin: round; }
+svg .lbl { font: 700 12px var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+svg .cell { stroke: var(--surface); stroke-width: 1.5; }
+svg .foldhit { fill: transparent; cursor: pointer; }
+svg .foldhit:focus { outline: none; }
+svg .foldhit:focus-visible { stroke: var(--fit); stroke-width: 2; }
+svg .bar { cursor: pointer; }
+svg .dot { opacity: 0.75; }
+#strip { height: 150px; }
+#scatter { height: 320px; }
+#bars { height: 230px; }
+#models { height: 200px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+
+.round { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+@media (max-width: 720px) { .round { grid-template-columns: minmax(0, 1fr); } }
+.readout { display: flex; flex-direction: column; gap: 14px; }
+.readout .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+.readout .label { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.readout .val { font-family: var(--display); font-weight: 800; font-size: 2rem; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.readout .how { font-size: 0.9rem; color: var(--muted); }
+.readout .s-test { border-top: 4px solid var(--test); }
+.readout .s-cv { border-top: 4px solid var(--good); }
+
+.tablebox { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.88rem; font-variant-numeric: tabular-nums; min-width: 480px; }
+th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+th:first-child, td:first-child, th.l, td.l { text-align: left; }
+tbody tr { cursor: pointer; }
+tr.cur td { background: var(--test-soft); }
+tr.best td { background: var(--good-soft); }
+tfoot td { border-bottom: 0; font-weight: 600; }
+.callout { border-left: 3px solid var(--good); padding-left: 14px; }
+.code { font-family: var(--mono); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font-size: 0.88rem; overflow-x: auto; white-space: pre; }
+a { color: var(--fit); text-underline-offset: .2em; }
+ul { margin: 0; padding-left: 1.2em; max-width: 65ch; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
+    <div class="topline">
+      <p class="eyebrow">Building models for prediction · 117 monthly utility bills</p>
+      <button class="theme-btn" id="theme" aria-pressed="false">Dark mode</button>
+    </div>
+    <h1>Fold by fold</h1>
+    <p class="lede">One train/test split can be lucky or unlucky. Cross-validation fixes that by giving every month a turn in the test set. Shuffle the data, cut it into <i>k</i> folds, test on each fold once, and average the errors.</p>
+    <div class="headline">
+      <span class="big c-good" id="h-cv">CV RMSPE = 0.765</span>
+      <span class="sub" id="h-sub">Quadratic model, 3-fold cross-validation</span>
+    </div>
+  </header>
+
+  <div class="controls" role="group" aria-label="Cross-validation controls">
+    <div class="grp">
+      <span class="lab">Folds (k)</span>
+      <div class="seg" id="kseg" role="group" aria-label="Number of folds"></div>
+    </div>
+    <div class="grp">
+      <span class="lab">Model</span>
+      <div class="seg" id="mseg" role="group" aria-label="Model"></div>
+    </div>
+    <div class="grp">
+      <span class="lab">Round</span>
+      <button id="prev" aria-label="Previous round">◀</button>
+      <output id="round-out" aria-live="polite">Round 1 of 3</output>
+      <button id="next" aria-label="Next round">▶</button>
+      <button id="play">Play all rounds</button>
+    </div>
+  </div>
+
+  <section>
+    <p class="eyebrow">Step 1</p>
+    <h2>Shuffle, then cut into folds</h2>
+    <p>Each square is one month, in shuffled order. The shuffle mixes hot and cold months, so every fold looks like the full data set. <span id="strip-note"></span></p>
+    <div class="card">
+      <svg id="strip" role="img" aria-label="The 117 months in shuffled order, cut into folds"></svg>
+      <div class="legend"><span><i style="background:var(--test)"></i>Test fold this round</span><span><i style="background:var(--fold-b)"></i>Training folds</span><span>Click a fold to give it the test-set turn</span></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 2</p>
+    <h2>One round: train on the rest, test on one fold</h2>
+    <p>The blue curve is fit to the training folds only. The orange rings are the test fold, months this model never saw. The orange lines are its misses, and RMSPE boils them down to one number.</p>
+    <div class="round">
+      <div class="card">
+        <svg id="scatter" role="img" aria-label="Gas spend per day against temperature for this round"></svg>
+        <div class="legend"><span><i style="background:var(--train-dot)"></i>Training months</span><span><i style="background:var(--surface);box-shadow:inset 0 0 0 2px var(--test)"></i>Test months</span><span><i style="background:var(--fit);border-radius:2px;height:3px;width:14px;vertical-align:3px"></i>Model fit to training folds</span></div>
+      </div>
+      <div class="readout">
+        <div class="stat"><span class="label">This round</span><span class="how" id="r-what"></span></div>
+        <div class="stat s-test"><span class="label">Round RMSPE</span><span class="val c-test" id="r-rmspe"></span><span class="how">Typical miss on the test fold, in $ per day</span></div>
+        <div class="stat s-cv"><span class="label">Running average</span><span class="val c-good" id="r-avg"></span><span class="how" id="r-avgh"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 3</p>
+    <h2>Every fold takes a turn, then average</h2>
+    <p>After <i>k</i> rounds, every month has been tested exactly once. The fold errors bounce around because some folds are harder to predict than others. Their average is the cross-validation estimate, and it is steadier than any single split.</p>
+    <div class="card">
+      <svg id="bars" role="img" aria-label="RMSPE for each fold, with the average"></svg>
+    </div>
+    <div class="card tablebox">
+      <table>
+        <thead><tr><th>Round</th><th class="l">Train on</th><th class="l">Test on</th><th>Test months</th><th>RMSPE</th></tr></thead>
+        <tbody id="rbody"></tbody>
+        <tfoot><tr><td>Average</td><td class="l"></td><td class="l"></td><td></td><td class="c-good" id="t-avg"></td></tr></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 4</p>
+    <h2>Use it to pick a model</h2>
+    <p>Run the same folds for each model and compare their averages. Each dot is one fold's RMSPE; the black bar is the average.</p>
+    <div class="card">
+      <svg id="models" role="img" aria-label="Fold RMSPEs and cross-validation average for each model"></svg>
+    </div>
+    <div class="card tablebox">
+      <table>
+        <thead><tr><th>Model</th><th>RSE (all data)</th><th>CV RMSPE</th><th>Best and worst fold</th></tr></thead>
+        <tbody id="mbody"></tbody>
+      </table>
+    </div>
+    <p class="callout" id="pick-note"></p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 5</p>
+    <h2>How many folds?</h2>
+    <p>Switch <b>Folds (k)</b> in the bar at the top and watch the table above.</p>
+    <ul>
+      <li><b>More folds:</b> each model trains on more of the data, and you average more rounds. The cost is more models to fit.</li>
+      <li><b>Fewer folds:</b> less work, which is why we do <i>k</i> = 3 by hand in class.</li>
+    </ul>
+    <p>Five or 10 folds are common in practice. Whatever <i>k</i> you choose, the quadratic model comes out on top here, and the 9th-degree model never beats it.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">In R</p>
+    <h2>3-fold cross-validation by hand</h2>
+    <div class="code">set.seed(9529)
+randomized &lt;- slice_sample(utilities, n = 117)   # shuffle
+
+fold1 &lt;- randomized[1:39, ]
+fold2 &lt;- randomized[40:78, ]
+fold3 &lt;- randomized[79:117, ]
+
+# Each fold takes one turn as the test set
+modelA &lt;- lm(dailyspend ~ temp, data = rbind(fold2, fold3))
+modelB &lt;- lm(dailyspend ~ temp, data = rbind(fold1, fold3))
+modelC &lt;- lm(dailyspend ~ temp, data = rbind(fold1, fold2))
+
+rmspeA &lt;- sqrt(mean((fold1$dailyspend - predict(modelA, fold1))^2))
+rmspeB &lt;- sqrt(mean((fold2$dailyspend - predict(modelB, fold2))^2))
+rmspeC &lt;- sqrt(mean((fold3$dailyspend - predict(modelC, fold3))^2))
+
+mean(c(rmspeA, rmspeB, rmspeC))   # 0.86 for the linear model</div>
+    <p class="fine">Data: 117 monthly bills from the mosaicData <code>Utilities</code> set; dailyspend = gas bill ÷ billing days, temperature in °F. The shuffle is the one R makes with <code>set.seed(9529)</code> and <code>slice_sample()</code>, so the 3-fold numbers match lecture exactly. For <i>k</i> = 5 and 10, the same shuffled order is cut into <i>k</i> nearly equal pieces. Companion lab: <a href="train-test-split.html">Train, Test, Repeat</a>.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const T = [26,18,24,41,45,60,66,72,72,64,54,37,11,70,76,75,64,51,48,23,28,21,45,51,69,76,72,69,47,34,25,17,29,46,56,67,72,75,69,53,35,25,15,16,35,48,58,64,72,67,71,43,23,15,29,31,54,56,72,78,74,69,56,41,21,30,22,34,53,59,74,78,77,64,50,41,30,24,13,38,46,65,74,76,75,68,58,41,18,15,28,45,55,68,76,75,67,55,39,18,9,23,32,47,61,69,71,72,69,45,46,22,15,20,41,56,60];
+  const Y = [3.1311,3.196,4.6431,0.5471,1.3921,2.8084,1.022,0.2525,0.609,0.6684,1.4203,3.1067,6.8023,0.342,0.4263,0.5839,0.6723,1.1166,1.6242,3.9956,3.5466,3.9183,2.1981,1.6307,0.8076,0.5816,0.6055,0.6053,1.9221,3.0539,4.014,6.45,6.0697,2.7134,1.459,0.8434,0.665,0.6745,0.7027,1.4606,3.6762,4.8266,7.2297,6.6707,4.0058,2.189,1.3586,0.7856,0.5197,0.749,0.6641,3.0521,6.4051,7.464,5.9511,3.547,2.1663,2.2075,0.8531,0.6653,0.6262,0.6978,1.9221,4.6436,7.771,6.0575,6.8314,4.781,1.8966,1.6341,0.5997,0.5457,0.5476,0.8044,1.5903,3.2285,5.1316,5.5675,7.1562,4.0959,2.7587,1.0306,0.7383,0.7623,0.6184,0.818,1.3307,3.1673,6.2874,7.149,5.5767,3.1326,1.7383,0.7231,2.1819,0.9252,0.9603,1.3465,3.2276,5.9774,7.524,5.0972,3.6987,1.9343,1.2443,0.8026,0.762,0.67,0.7412,2.0131,2.1193,3.6525,6.2321,5.2781,2.7293,1.0152,1.3203];
+  // Row order (0-based) after set.seed(9529); slice_sample(utilities, n = 117) in R
+  const ORDER = [96,69,104,63,94,31,18,7,102,56,73,41,81,111,44,97,53,12,88,60,8,64,4,110,22,5,38,29,109,68,61,74,58,1,87,83,39,89,91,2,80,71,54,55,100,114,101,76,40,112,17,59,26,24,13,103,34,107,42,67,85,9,57,14,116,47,36,48,113,21,105,50,19,15,43,20,0,72,115,77,10,16,98,78,35,79,99,37,90,65,6,86,30,28,32,84,25,33,27,49,45,3,82,66,108,51,95,46,11,62,70,92,23,75,106,52,93];
+  const N = T.length, KS = [3, 5, 10];
+  const MODELS = [{ d: 1, name: "Linear" }, { d: 2, name: "Quadratic" }, { d: 9, name: "9th degree" }];
+  const z = t => (t - 43.5) / 34.5;
+  const $ = id => document.getElementById(id);
+  const f2 = v => v.toFixed(2), f3 = v => v.toFixed(3);
+  const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- Least squares (Householder QR) ----------
+  function fit(idx, d) {
+    const m = idx.length, n = d + 1;
+    const A = Array.from({ length: n }, (_, j) => idx.map(i => Math.pow(z(T[i]), j)));
+    const b = idx.map(i => Y[i]);
+    for (let k = 0; k < n; k++) {
+      let norm = 0; for (let i = k; i < m; i++) norm += A[k][i] * A[k][i];
+      norm = Math.sqrt(norm); if (norm === 0) continue;
+      const alpha = A[k][k] > 0 ? -norm : norm;
+      const v = new Array(m).fill(0);
+      v[k] = A[k][k] - alpha; for (let i = k + 1; i < m; i++) v[i] = A[k][i];
+      let vv = 0; for (let i = k; i < m; i++) vv += v[i] * v[i];
+      if (vv === 0) continue;
+      for (let j = k; j < n; j++) { let s = 0; for (let i = k; i < m; i++) s += v[i] * A[j][i]; s = 2 * s / vv; for (let i = k; i < m; i++) A[j][i] -= s * v[i]; }
+      let s = 0; for (let i = k; i < m; i++) s += v[i] * b[i]; s = 2 * s / vv; for (let i = k; i < m; i++) b[i] -= s * v[i];
+    }
+    const beta = new Array(n).fill(0);
+    for (let k = n - 1; k >= 0; k--) { let s = b[k]; for (let j = k + 1; j < n; j++) s -= A[j][k] * beta[j]; beta[k] = s / A[k][k]; }
+    return beta;
+  }
+  const pred = (beta, t) => { const x = z(t); let s = 0, p = 1; for (const c of beta) { s += c * p; p *= x; } return s; };
+  const rmse = (beta, idx) => Math.sqrt(idx.reduce((s, i) => s + (Y[i] - pred(beta, T[i])) ** 2, 0) / idx.length);
+  const ALL = [...Array(N).keys()];
+  const RSE = {};
+  MODELS.forEach(({ d }) => { const b = fit(ALL, d); RSE[d] = Math.sqrt(ALL.reduce((s, i) => s + (Y[i] - pred(b, T[i])) ** 2, 0) / (N - d - 1)); });
+
+  // ---------- Folds and results ----------
+  const foldOfPos = (p, k) => Math.floor(p * k / N);
+  const cache = {};
+  function results(k) {
+    if (cache[k]) return cache[k];
+    const folds = Array.from({ length: k }, () => []);
+    ORDER.forEach((row, p) => folds[foldOfPos(p, k)].push(row));
+    const byModel = {};
+    MODELS.forEach(({ d }) => {
+      byModel[d] = folds.map((test, j) => {
+        const train = folds.filter((_, jj) => jj !== j).flat();
+        const b = fit(train, d);
+        return { b, test, train, rmspe: rmse(b, test) };
+      });
+      byModel[d].avg = byModel[d].reduce((s, r) => s + r.rmspe, 0) / k;
+    });
+    return (cache[k] = { folds, byModel });
+  }
+
+  const state = { k: 3, d: 2, round: 0 };
+  const foldList = (js) => {
+    const names = js.map(j => `fold ${j + 1}`);
+    return names.length <= 2 ? names.join(" and ") : names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+  };
+  const others = j => [...Array(state.k).keys()].filter(x => x !== j);
+  const trainLabel = j => state.k <= 3 ? foldList(others(j)).replace(/^f/, "F") : `All folds except ${j + 1}`;
+  const modelName = d => MODELS.find(m => m.d === d).name;
+
+  // ---------- Theme ----------
+  const themeBtn = $("theme");
+  const isDark = () => {
+    const t = document.documentElement.getAttribute("data-theme");
+    return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  };
+  function syncThemeBtn() {
+    const dark = isDark();
+    themeBtn.setAttribute("aria-pressed", String(dark));
+    themeBtn.textContent = dark ? "Light mode" : "Dark mode";
+  }
+  function setTheme(dark) {
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    try { localStorage.setItem("one-inch-theme", dark ? "dark" : "light"); } catch (e) {}
+    syncThemeBtn();
+  }
+  try { const saved = localStorage.getItem("one-inch-theme"); if (saved === "dark" || saved === "light") document.documentElement.setAttribute("data-theme", saved); } catch (e) {}
+  syncThemeBtn();
+  themeBtn.addEventListener("click", () => setTheme(!isDark()));
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncThemeBtn);
+
+  const dims = svg => {
+    const r = svg.getBoundingClientRect();
+    const W = Math.max(280, r.width || 700), H = r.height || 300;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    return { W, H };
+  };
+
+  // ---------- Step 1: fold strip ----------
+  function drawStrip() {
+    const svg = $("strip"), { W, H } = dims(svg), k = state.k;
+    const { folds } = results(k);
+    const gap = 10, cols = W < 520 ? 10 : 13;
+    // Each fold is a block of cells; lay folds left to right and wrap to more rows when narrow.
+    const maxCells = Math.max(...folds.map(f => f.length));
+    const perRowFolds = Math.max(1, Math.min(k, Math.floor((W + gap) / (cols * 9 + gap))));
+    const rowsOfFolds = Math.ceil(k / perRowFolds);
+    const blockW = (W - gap * (perRowFolds - 1)) / perRowFolds;
+    const fc = Math.max(3, Math.min(cols, Math.floor(blockW / 9)));
+    const cell = Math.min(16, blockW / fc);
+    const blockRows = Math.ceil(maxCells / fc);
+    const blockH = blockRows * cell + 26;
+    const needH = rowsOfFolds * blockH + (rowsOfFolds - 1) * 12 + 4;
+    if (Math.abs(needH - H) > 2) { svg.style.height = needH + "px"; svg.setAttribute("viewBox", `0 0 ${W} ${needH}`); }
+    let g = "";
+    folds.forEach((f, j) => {
+      const r = Math.floor(j / perRowFolds), c = j % perRowFolds;
+      const x0 = c * (blockW + gap), y0 = r * (blockH + 12);
+      const isTest = j === state.round;
+      const fill = isTest ? "var(--test)" : (j % 2 ? "var(--fold-a)" : "var(--fold-b)");
+      f.forEach((row, n) => {
+        const cx = x0 + (n % fc) * cell, cy = y0 + Math.floor(n / fc) * cell;
+        g += `<rect class="cell" x="${cx}" y="${cy}" width="${cell}" height="${cell}" rx="2" style="fill:${fill}"/>`;
+      });
+      g += `<text class="tl" x="${x0}" y="${y0 + blockRows * cell + 16}" style="${isTest ? "fill:var(--test);font-weight:600" : ""}">Fold ${j + 1} · ${f.length}</text>`;
+      g += `<rect class="foldhit" data-j="${j}" x="${x0 - 2}" y="${y0 - 2}" width="${blockW + 4}" height="${blockH}" rx="6" tabindex="0" role="button" aria-label="Test on fold ${j + 1}"/>`;
+    });
+    svg.innerHTML = g;
+    const sizes = [...new Set(folds.map(f => f.length))].sort((a, b) => b - a);
+    $("strip-note").textContent = `With k = ${k}, that's ${sizes.join(" or ")} months per fold.`;
+  }
+  $("strip").addEventListener("click", e => { const t = e.target.closest("[data-j]"); if (t) setRound(+t.dataset.j); });
+  $("strip").addEventListener("keydown", e => {
+    const t = e.target.closest("[data-j]"); if (!t) return;
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setRound(+t.dataset.j); requestAnimationFrame(() => { const el = $("strip").querySelector(`[data-j="${t.dataset.j}"]`); if (el) el.focus(); }); }
+  });
+
+  // ---------- Step 2: scatter ----------
+  function drawScatter() {
+    const svg = $("scatter"), { W, H } = dims(svg);
+    const r = results(state.k).byModel[state.d][state.round];
+    const m = { l: 44, r: 14, t: 18, b: 36 };
+    const x = t => m.l + (t - 5) / 80 * (W - m.l - m.r);
+    const y = v => m.t + (9 - v) / 9 * (H - m.t - m.b);
+    let g = `<defs><clipPath id="clip"><rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}"/></clipPath></defs>`;
+    for (let v = 0; v <= 8; v += 2) g += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tl" x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">$${v}</text>`;
+    for (let t = 10; t <= 80; t += 10) g += `<text class="tl" x="${x(t)}" y="${H - m.b + 18}" text-anchor="middle">${t}°</text>`;
+    g += `<text class="tt" x="${m.l}" y="${m.t - 6}">GAS SPEND PER DAY</text><text class="tt" x="${W - m.r}" y="${H - 4}" text-anchor="end">AVERAGE TEMPERATURE (°F)</text>`;
+    for (const i of r.test) g += `<line class="res" x1="${x(T[i])}" x2="${x(T[i])}" y1="${y(Y[i])}" y2="${y(Math.max(-1, Math.min(10, pred(r.b, T[i]))))}" clip-path="url(#clip)"/>`;
+    for (const i of r.train) g += `<circle class="trn" cx="${x(T[i])}" cy="${y(Y[i])}" r="3.4"/>`;
+    let d = "";
+    for (let t = 5; t <= 85.001; t += 0.5) { const v = Math.max(-2, Math.min(11, pred(r.b, t))); d += (d ? "L" : "M") + x(t).toFixed(1) + "," + y(v).toFixed(1); }
+    g += `<path class="fitline" d="${d}" clip-path="url(#clip)"/>`;
+    for (const i of r.test) g += `<circle class="tst" cx="${x(T[i])}" cy="${y(Y[i])}" r="4.6"/>`;
+    svg.innerHTML = g;
+  }
+
+  function drawReadout() {
+    const res = results(state.k).byModel[state.d], r = res[state.round], j = state.round;
+    const tl = trainLabel(j);
+    $("r-what").innerHTML = `Train on <b>${tl[0].toLowerCase() + tl.slice(1)}</b> (${r.train.length} months). Test on <b class="c-test">fold ${j + 1}</b> (${r.test.length} months).`;
+    $("r-rmspe").textContent = f2(r.rmspe);
+    const done = res.slice(0, j + 1), avg = done.reduce((s, x) => s + x.rmspe, 0) / done.length;
+    $("r-avg").textContent = f2(avg);
+    $("r-avgh").textContent = j + 1 === state.k
+      ? `All ${state.k} rounds done. This is the CV RMSPE.`
+      : `Average of rounds 1 to ${j + 1}. Keep going: ${state.k - j - 1} round${state.k - j - 1 === 1 ? "" : "s"} left.`;
+    $("round-out").textContent = `Round ${j + 1} of ${state.k}`;
+    $("prev").disabled = j === 0;
+    $("next").disabled = j === state.k - 1;
+  }
+
+  // ---------- Step 3: fold bars + table ----------
+  function drawBars() {
+    const svg = $("bars"), { W, H } = dims(svg), k = state.k;
+    const res = results(k).byModel[state.d];
+    const m = { l: 44, r: 96, t: 22, b: 34 };
+    const top = Math.max(1.2, Math.ceil(Math.max(...res.map(r => r.rmspe)) * 5) / 5);
+    const band = (W - m.l - m.r) / k, bw = Math.min(56, band * 0.62);
+    const x = j => m.l + band * (j + 0.5);
+    const y = v => m.t + (top - v) / top * (H - m.t - m.b);
+    let g = "";
+    for (let v = 0; v <= top + 1e-9; v += top > 1.6 ? 0.5 : 0.2) g += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tl" x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(1)}</text>`;
+    g += `<text class="tt" x="${m.l}" y="${m.t - 10}">RMSPE ON EACH TEST FOLD</text>`;
+    res.forEach((r, j) => {
+      const cur = j === state.round;
+      g += `<rect class="bar" data-j="${j}" x="${x(j) - bw / 2}" y="${y(r.rmspe)}" width="${bw}" height="${y(0) - y(r.rmspe)}" rx="3" style="fill:${cur ? "var(--test)" : "var(--test-soft)"};stroke:var(--test);stroke-width:1.5"/>`;
+      if (k <= 5 || cur) g += `<text class="lbl" x="${x(j)}" y="${y(r.rmspe) - 6}" text-anchor="middle" style="fill:var(--test)">${f2(r.rmspe)}</text>`;
+      g += `<text class="tl" x="${x(j)}" y="${H - m.b + 16}" text-anchor="middle" style="${cur ? "fill:var(--ink);font-weight:600" : ""}">${k <= 5 ? "Fold " : ""}${j + 1}</text>`;
+    });
+    g += `<line x1="${m.l}" x2="${W - m.r + 6}" y1="${y(res.avg)}" y2="${y(res.avg)}" style="stroke:var(--good);stroke-width:2.5;stroke-dasharray:6 4"/>`;
+    g += `<text class="lbl" x="${W - m.r + 10}" y="${y(res.avg) - 4}" style="fill:var(--good)">average</text><text class="lbl" x="${W - m.r + 10}" y="${y(res.avg) + 13}" style="fill:var(--good)">${f2(res.avg)}</text>`;
+    svg.innerHTML = g;
+
+    $("rbody").innerHTML = res.map((r, j) => `<tr data-j="${j}" class="${j === state.round ? "cur" : ""}"><td>${j + 1}</td><td class="l">${trainLabel(j)}</td><td class="l">Fold ${j + 1}</td><td>${r.test.length}</td><td class="c-test">${f3(r.rmspe)}</td></tr>`).join("");
+    $("t-avg").textContent = f3(res.avg);
+  }
+  $("bars").addEventListener("click", e => { const t = e.target.closest("[data-j]"); if (t) setRound(+t.dataset.j); });
+  $("rbody").addEventListener("click", e => { const t = e.target.closest("[data-j]"); if (t) setRound(+t.dataset.j); });
+
+  // ---------- Step 4: model comparison ----------
+  function drawModels() {
+    const svg = $("models"), { W, H } = dims(svg), k = state.k;
+    const { byModel } = results(k);
+    const m = { l: 92, r: 18, t: 12, b: 36 };
+    const vals = MODELS.flatMap(({ d }) => byModel[d].map(r => r.rmspe));
+    const XLO = Math.max(0, Math.floor(Math.min(...vals) * 5) / 5 - 0.2), XHI = Math.ceil(Math.max(...vals) * 5) / 5 + 0.1;
+    const x = v => m.l + (v - XLO) / (XHI - XLO) * (W - m.l - m.r);
+    const rowH = (H - m.t - m.b) / MODELS.length;
+    const best = MODELS.reduce((a, b) => byModel[b.d].avg < byModel[a.d].avg ? b : a).d;
+    let g = "";
+    for (let v = Math.ceil(XLO * 5) / 5; v <= XHI + 1e-9; v += 0.2) g += `<line class="grid" x1="${x(v)}" x2="${x(v)}" y1="${m.t}" y2="${H - m.b}"/><text class="tl" x="${x(v)}" y="${H - m.b + 18}" text-anchor="middle">${v.toFixed(1)}</text>`;
+    g += `<text class="tt" x="${W - m.r}" y="${H - 4}" text-anchor="end">RMSPE ($ PER DAY)</text>`;
+    MODELS.forEach(({ d, name }, r) => {
+      const cy = m.t + rowH * (r + 0.5);
+      const res = byModel[d];
+      g += `<text class="tl" x="${m.l - 12}" y="${cy + 4}" text-anchor="end" style="fill:${d === best ? "var(--good)" : "var(--ink)"};font-weight:600">${name}</text>`;
+      g += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${cy}" y2="${cy}" style="stroke-dasharray:2 4"/>`;
+      res.forEach((rr, j) => {
+        const jit = ((j * 0.61803) % 1 - 0.5) * rowH * 0.5;
+        g += `<circle class="dot" cx="${x(rr.rmspe)}" cy="${cy + jit}" r="4.5" style="fill:${d === state.d && j === state.round ? "var(--test)" : "var(--fit)"}"/>`;
+      });
+      g += `<line x1="${x(res.avg)}" x2="${x(res.avg)}" y1="${cy - rowH * 0.38}" y2="${cy + rowH * 0.38}" style="stroke:${d === best ? "var(--good)" : "var(--ink)"};stroke-width:3"/>`;
+    });
+    svg.innerHTML = g;
+
+    $("mbody").innerHTML = MODELS.map(({ d, name }) => {
+      const res = byModel[d], rs = res.map(r => r.rmspe);
+      return `<tr data-d="${d}" class="${d === best ? "best" : ""}"><td>${name}${d === state.d ? " ●" : ""}</td><td>${f3(RSE[d])}</td><td><b>${f3(res.avg)}</b></td><td>${f2(Math.min(...rs))} to ${f2(Math.max(...rs))}</td></tr>`;
+    }).join("");
+    const rseBest = MODELS.reduce((a, b) => RSE[b.d] < RSE[a.d] ? b : a).d;
+    $("pick-note").innerHTML = `By RSE, the <b>${modelName(rseBest).toLowerCase()}</b> model looks best (${f3(RSE[rseBest])}), because RSE only checks months the model already saw. With ${k}-fold cross-validation, the <b class="c-good">${modelName(best).toLowerCase()}</b> model has the lowest average error (${f3(byModel[best].avg)}). Pick the model with the lowest CV RMSPE.`;
+  }
+  $("mbody").addEventListener("click", e => { const t = e.target.closest("[data-d]"); if (t) setModel(+t.dataset.d); });
+
+  function drawHeadline() {
+    const res = results(state.k).byModel[state.d];
+    $("h-cv").textContent = `CV RMSPE = ${f3(res.avg)}`;
+    $("h-sub").textContent = `${modelName(state.d)} model, ${state.k}-fold cross-validation`;
+  }
+
+  // ---------- Controls ----------
+  $("kseg").innerHTML = KS.map(k => `<button data-k="${k}" aria-pressed="${k === state.k}">${k}</button>`).join("");
+  $("mseg").innerHTML = MODELS.map(({ d, name }) => `<button data-d="${d}" aria-pressed="${d === state.d}">${name}</button>`).join("");
+  $("kseg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setK(+b.dataset.k); });
+  $("mseg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setModel(+b.dataset.d); });
+  $("prev").addEventListener("click", () => setRound(state.round - 1));
+  $("next").addEventListener("click", () => setRound(state.round + 1));
+
+  let timer = 0;
+  function stopPlay() { clearInterval(timer); timer = 0; $("play").textContent = "Play all rounds"; $("play").setAttribute("aria-pressed", "false"); }
+  $("play").addEventListener("click", () => {
+    if (timer) { stopPlay(); return; }
+    if (reduceMotion()) { setRound(state.k - 1); return; }
+    setRound(0, true);
+    $("play").textContent = "Stop"; $("play").setAttribute("aria-pressed", "true");
+    timer = setInterval(() => { if (state.round >= state.k - 1) stopPlay(); else setRound(state.round + 1, true); }, 1300);
+  });
+
+  function setRound(j, fromPlay) {
+    if (!fromPlay) stopPlay();
+    state.round = Math.max(0, Math.min(state.k - 1, j));
+    drawStrip(); drawScatter(); drawReadout(); drawBars(); drawModels();
+  }
+  function setK(k) {
+    stopPlay();
+    state.k = k; state.round = 0;
+    document.querySelectorAll("#kseg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.k === k)));
+    all();
+  }
+  function setModel(d) {
+    state.d = d;
+    document.querySelectorAll("#mseg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.d === d)));
+    all();
+  }
+
+  function all() { drawHeadline(); drawStrip(); drawScatter(); drawReadout(); drawBars(); drawModels(); }
+  all();
+  let rt = 0;
+  new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(all, 60); }).observe(document.querySelector(".wrap"));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(all);
+})();
+</script>
+</body>
+</html>
