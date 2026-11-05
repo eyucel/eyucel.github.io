@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>What Does Z Do?</title>
+<meta name="description" content="Simulate hundreds of sleep-and-GPA studies and see what controlling for a confounder, a precision variable, a mediator, a collider, or pure noise does to the slope on sleep.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column under a sticky role/strength bar; the bar drives the DAG, the simulation and the verdict. */
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #151a25;
+  --muted: #5a6377;
+  --line: #dde2ea;
+  --without: #c0550b;
+  --with: #2a56cf;
+  --truth: #0b8768;
+  --without-soft: #fbeadd;
+  --with-soft: #e6ecfb;
+  --truth-soft: #ddf2ec;
+  --bad: #b3261e;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #0e1117; --surface: #161a22; --ink: #e7eaf0; --muted: #98a1b3; --line: #2a303b;
+  --without: #ff9c52; --with: #85a5ff; --truth: #3fd2a8; --bad: #ff8a80;
+  --without-soft: #352214; --with-soft: #1c2540; --truth-soft: #122e27;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.6; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+[hidden] { display: none !important; }
+.wrap {
+  max-width: 920px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 48px 96px;
+  display: flex; flex-direction: column; gap: 56px;
+}
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.08; }
+h1 { font-size: clamp(2.6rem, 7vw, 4.6rem); font-weight: 800; letter-spacing: -0.03em; }
+h2 { font-size: clamp(1.6rem, 3.6vw, 2.2rem); font-weight: 700; letter-spacing: -0.015em; }
+h3 { font-size: 1.15rem; font-weight: 700; }
+p { margin: 0; max-width: 65ch; }
+.eyebrow { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.c-without { color: var(--without); } .c-with { color: var(--with); } .c-truth { color: var(--truth); }
+section { display: flex; flex-direction: column; gap: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; min-width: 0; }
+.fine { font-size: 0.85rem; color: var(--muted); }
+button {
+  font: 600 0.85rem var(--mono); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--with); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type=range] { width: 100%; accent-color: var(--ink); min-width: 0; }
+input[type=range]:disabled { opacity: 0.35; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 6px 11px; font-size: 0.8rem; }
+.topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.theme-btn { font-size: 0.75rem; padding: 6px 10px; }
+.hero { display: flex; flex-direction: column; gap: 20px; }
+.lede { font-size: 1.15rem; }
+
+.controls {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line); padding-block: 12px;
+  display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
+}
+.controls .grp { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.controls .lab { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.controls .size { flex: 1 1 200px; }
+.controls output { font-family: var(--mono); font-size: 0.8rem; white-space: nowrap; min-width: 4.5em; }
+
+svg { display: block; width: 100%; overflow: visible; }
+svg .grid { stroke: var(--line); stroke-width: 1; }
+svg .tl { fill: var(--muted); font: 11px var(--mono); }
+svg .tt { fill: var(--muted); font: 600 11px var(--mono); letter-spacing: 0.06em; }
+svg .lbl { font: 700 12px var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+#dag { height: 230px; }
+#strips { height: 250px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+
+.dagwrap { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+@media (max-width: 680px) { .dagwrap { grid-template-columns: minmax(0, 1fr); } }
+.story h3 { margin-bottom: 6px; }
+.story .tag { display: inline-block; font: 600 0.72rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; background: var(--line); margin-bottom: 8px; }
+
+.read { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 680px) { .read { grid-template-columns: minmax(0, 1fr); } }
+.read > div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; min-width: 0; }
+.read .r-without { border-top: 4px solid var(--without); }
+.read .r-with { border-top: 4px solid var(--with); }
+.read h3 { font-size: 1rem; margin-bottom: 10px; }
+.read dl { display: grid; grid-template-columns: auto auto; gap: 4px 12px; margin: 0; font-size: 0.92rem; }
+.read dt { color: var(--muted); }
+.read dd { margin: 0; text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 600; }
+.read dd.bad { color: var(--bad); }
+.verdict { border-left: 4px solid var(--truth); background: var(--truth-soft); padding: 14px 16px; border-radius: 0 10px 10px 0; }
+.verdict.warn { border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--surface)); }
+.verdict b { font-family: var(--display); font-size: 1.1rem; }
+.runbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 12px; }
+
+.mystery { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mystery .guesses { display: flex; flex-wrap: wrap; gap: 6px; }
+.mystery .result { font-family: var(--mono); font-size: 0.85rem; }
+
+.tablebox { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.92rem; min-width: 560px; }
+th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 0.7rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+td.yes { color: var(--truth); font-weight: 600; } td.no { color: var(--bad); font-weight: 600; }
+tr.cur td { background: var(--with-soft); }
+.code { font-family: var(--mono); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font-size: 0.88rem; overflow-x: auto; white-space: pre; }
+a { color: var(--with); text-underline-offset: .2em; }
+svg .pop { animation: pop 0.35s ease-out both; }
+@keyframes pop { from { opacity: 0; transform: translateY(-10px); } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
+    <div class="topline">
+      <p class="eyebrow">Building models for explanation · sleep and GPA</p>
+      <button class="theme-btn" id="theme" aria-pressed="false">Dark mode</button>
+    </div>
+    <h1>What does Z do?</h1>
+    <p class="lede">We want the effect of sleep (<b>X</b>) on term GPA (<b>Y</b>). Someone hands you a third variable, <b>Z</b>. Should it go in the model?</p>
+    <p>The answer never comes from the regression output alone. It depends on where Z sits in the causal story: what causes Z, and what Z causes. Here we invent a world where we <i>know</i> the truth, run the same study 300 times, and see what adding Z does to the slope on sleep.</p>
+    <p>In every world below, one more hour of sleep raises GPA by <b class="c-truth">0.10 points</b>. That is the number a good model should recover.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Simulation controls">
+    <div class="grp">
+      <span class="lab">Z is a</span>
+      <div class="seg" id="roleseg" role="group" aria-label="Role of Z"></div>
+    </div>
+    <div class="grp size">
+      <span class="lab"><label for="strength">Z's arrows</label></span>
+      <input type="range" id="strength" min="0" max="1" step="0.05" value="0.8">
+      <output id="strength-out" for="strength">strong</output>
+    </div>
+    <div class="grp size">
+      <span class="lab"><label for="n">Students</label></span>
+      <input type="range" id="n" min="50" max="1000" step="50" value="300">
+      <output id="n-out" for="n">300</output>
+    </div>
+  </div>
+
+  <section>
+    <p class="eyebrow">Step 1</p>
+    <h2>Draw the arrows first</h2>
+    <p>An arrow means "causes." Thicker arrows are stronger effects. The arrow from sleep to GPA is the one we want to measure; everything else is a possible way to get it wrong.</p>
+    <div class="card dagwrap">
+      <svg id="dag" role="img" aria-label="Causal diagram of sleep, GPA and Z"></svg>
+      <div class="story" id="story" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 2</p>
+    <h2>Run the study 300 times</h2>
+    <p>Each dot will be one simulated study: draw a new sample of students, fit the regression, record the slope on sleep. The <b class="c-without">orange</b> row leaves Z out. The <b class="c-with">blue</b> row puts Z in. The <b class="c-truth">green</b> line is the true effect. Before each click, predict where the dots will land.</p>
+    <div class="card">
+      <svg id="strips" role="img" aria-label="Slopes on sleep from 300 simulated studies, with and without Z"></svg>
+      <div class="legend"><span><i style="background:var(--without)"></i>lm(gpa ~ sleep)</span><span><i style="background:var(--with)"></i>lm(gpa ~ sleep + z)</span><span><i style="background:var(--truth);border-radius:2px;width:3px;height:14px;vertical-align:-3px"></i>True effect, 0.10</span><span>Bar = middle 95% of estimates</span></div>
+      <div class="runbar">
+        <button id="rerun">Run 300 studies, leaving Z out</button>
+        <span class="fine">Two things can go wrong: the cloud can be in the <b>wrong place</b> (bias), or it can be <b>wide</b> (imprecise).</span>
+      </div>
+    </div>
+    <div class="read">
+      <div class="r-without"><h3 class="c-without">Leave Z out</h3><dl id="dl-without"></dl></div>
+      <div class="r-with"><h3 class="c-with">Put Z in</h3><dl id="dl-with"></dl></div>
+    </div>
+    <div class="verdict" id="verdict" aria-live="polite"></div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Step 3</p>
+    <h2>Mystery Z</h2>
+    <p>Now go the other way. A role is picked at random and hidden. Look only at the two clouds and the numbers above, then guess what kind of variable Z is. This is the reasoning you'll do on real data, except there you never get to check.</p>
+    <div class="card mystery">
+      <button id="mys">New mystery Z</button>
+      <div class="guesses" id="guesses" hidden></div>
+      <span class="result" id="mys-result" aria-live="polite"></span>
+    </div>
+    <p class="fine">Hint: a mediator and a confounder can produce clouds that look alike. The data can't tell them apart; only the time order and the story can. That is why we decide on controls by reasoning, not by p-values.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Summary</p>
+    <h2>The rule, in one table</h2>
+    <div class="card tablebox">
+      <table>
+        <thead><tr><th>Z is a…</th><th>Arrows</th><th>Lecture example</th><th>Include?</th><th>Why</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p>The two "never include" rows look harmless in the output. The coefficient on Z is significant, R² goes up, and the residual error goes down. The model predicts better and explains worse. That is the main difference between building a model for prediction (last week) and building one for explanation (this week).</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">In R</p>
+    <h2>One simulated study, by hand</h2>
+    <div class="code" id="rcode"></div>
+    <p class="fine">The simulation draws sleep and Z with standard deviation 1 and adds noise with SD 0.35 to GPA, so the numbers are in "GPA points per hour of sleep." For the mediator, the effects are split so the <i>total</i> effect of sleep stays at 0.10: part goes directly to GPA and part flows through Z. Companion lab: <a href="choose-your-controls.html">Choose Your Controls</a>, the same ideas on the sleep study and a sales training program.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const BETA = 0.10, SIGMA = 0.35, NSIM = 300;
+
+  const ROLES = {
+    confounder: {
+      name: "Confounder", short: "Confounder", z: "Cohort / school",
+      arrows: [["Z", "X"], ["Z", "Y"]],
+      blurb: "Z causes both sleep and GPA. Schools differ in schedules (more or less sleep) <i>and</i> in grading. Leave Z out and sleep gets credit for the school's effect.",
+      include: "Always", why: "Leaving it out biases the slope. This is omitted variable bias.",
+      example: "Cohort, prior GPA",
+      tag: "include", r: "z <- rnorm(n)\nsleep <- 0.7*z + rnorm(n)\ngpa <- 0.10*sleep + 0.35*z + rnorm(n, 0, 0.35)",
+    },
+    precision: {
+      name: "Precision variable", short: "Precision", z: "Prior GPA",
+      arrows: [["Z", "Y"]],
+      blurb: "Z predicts GPA strongly but has nothing to do with how much a student sleeps. Leaving it out doesn't bias anything. Putting it in soaks up noise, so the slope is estimated more precisely.",
+      include: "Yes", why: "No bias either way, but smaller residual error means narrower CIs.",
+      example: "A strong predictor of GPA unrelated to sleep",
+      tag: "include", r: "z <- rnorm(n)\nsleep <- rnorm(n)\ngpa <- 0.10*sleep + 0.45*z + rnorm(n, 0, 0.35)",
+    },
+    mediator: {
+      name: "Mediator", short: "Mediator", z: "Midterm score",
+      arrows: [["X", "Z"], ["Z", "Y"], ["X", "Y"]],
+      blurb: "Sleep improves the midterm, and the midterm counts toward term GPA. Part of sleep's effect <i>flows through</i> Z. Hold Z fixed and you delete that part, so the slope shrinks toward zero.",
+      include: "Never", why: "It is caused by X. Adjusting removes part of the effect you want.",
+      example: "Midterm grade",
+      tag: "never", r: "sleep <- rnorm(n)\nz <- 0.32*sleep + rnorm(n)       # sleep -> midterm\ngpa <- 0.02*sleep + 0.25*z + rnorm(n, 0, 0.35)\n# total effect: 0.02 + 0.32*0.25 = 0.10",
+    },
+    collider: {
+      name: "Collider", short: "Collider", z: "Stayed enrolled",
+      arrows: [["X", "Z"], ["Y", "Z"]],
+      blurb: "Z is caused by both sleep and GPA, like a scholarship-retention score that depends on both. Comparing students with the same Z creates a fake trade-off: among them, the well-rested ones must have lower GPAs.",
+      include: "Never", why: "It is caused by Y (and X). Adjusting creates bias out of nothing.",
+      example: "Variables measured after, and because of, the outcome",
+      tag: "never", r: "sleep <- rnorm(n)\ngpa <- 0.10*sleep + rnorm(n, 0, 0.35)\nz <- 0.5*sleep + 2.5*gpa + rnorm(n)   # both cause z",
+    },
+    noise: {
+      name: "Unrelated variable", short: "Unrelated", z: "Height",
+      arrows: [],
+      blurb: "Z has nothing to do with sleep or GPA. Adding it changes almost nothing. It costs one degree of freedom and adds clutter to the model.",
+      include: "Optional", why: "Harmless but useless. Leave it out unless someone expects it to matter.",
+      example: "Height",
+      tag: "may", r: "z <- rnorm(n)\nsleep <- rnorm(n)\ngpa <- 0.10*sleep + rnorm(n, 0, 0.35)",
+    },
+  };
+  const ORDER = ["confounder", "precision", "mediator", "collider", "noise"];
+
+  // ---------- Random numbers ----------
+  function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  let rng = mulberry32(235);
+  function rnorm() { let u = 0; while (u === 0) u = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rng()); }
+  const tcrit = df => 1.96 + 2.37 / df + 2.8 / (df * df);
+
+  // Coefficient on each variable, scaled by the strength slider s.
+  function draw(role, s, n) {
+    const X = new Float64Array(n), Y = new Float64Array(n), Z = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      let x, y, z;
+      if (role === "confounder") { z = rnorm(); x = 0.7 * s * z + rnorm(); y = BETA * x + 0.35 * s * z + SIGMA * rnorm(); }
+      else if (role === "precision") { z = rnorm(); x = rnorm(); y = BETA * x + 0.45 * s * z + SIGMA * rnorm(); }
+      else if (role === "mediator") { x = rnorm(); const a = 0.32 * s, c = 0.25 * s; z = a * x + rnorm(); y = (BETA - a * c) * x + c * z + SIGMA * rnorm(); }
+      else if (role === "collider") { x = rnorm(); y = BETA * x + SIGMA * rnorm(); z = s * (0.5 * x + 2.5 * y) + rnorm(); }
+      else { z = rnorm(); x = rnorm(); y = BETA * x + SIGMA * rnorm(); }
+      X[i] = x; Y[i] = y; Z[i] = z;
+    }
+    return { X, Y, Z };
+  }
+
+  // Slope on X from y ~ x and from y ~ x + z, with 95% CIs.
+  function fitBoth({ X, Y, Z }) {
+    const n = X.length;
+    let mx = 0, my = 0, mz = 0;
+    for (let i = 0; i < n; i++) { mx += X[i]; my += Y[i]; mz += Z[i]; }
+    mx /= n; my /= n; mz /= n;
+    let sxx = 0, sxy = 0, szz = 0, sxz = 0, szy = 0, syy = 0;
+    for (let i = 0; i < n; i++) {
+      const x = X[i] - mx, y = Y[i] - my, z = Z[i] - mz;
+      sxx += x * x; sxy += x * y; szz += z * z; sxz += x * z; szy += z * y; syy += y * y;
+    }
+    const b1 = sxy / sxx;
+    const rss1 = syy - b1 * sxy, se1 = Math.sqrt(rss1 / (n - 2) / sxx);
+    const det = sxx * szz - sxz * sxz;
+    const b2 = (szz * sxy - sxz * szy) / det, c2 = (sxx * szy - sxz * sxy) / det;
+    const rss2 = syy - b2 * sxy - c2 * szy, se2 = Math.sqrt(rss2 / (n - 3) * szz / det);
+    const t1 = tcrit(n - 2), t2 = tcrit(n - 3);
+    return {
+      without: { b: b1, lo: b1 - t1 * se1, hi: b1 + t1 * se1, rse: Math.sqrt(rss1 / (n - 2)) },
+      with: { b: b2, lo: b2 - t2 * se2, hi: b2 + t2 * se2, rse: Math.sqrt(rss2 / (n - 3)) },
+    };
+  }
+
+  function simulate(role, s, n) {
+    const out = { without: [], with: [] };
+    for (let k = 0; k < NSIM; k++) { const f = fitBoth(draw(role, s, n)); out.without.push(f.without); out.with.push(f.with); }
+    return out;
+  }
+
+  function summarize(fits) {
+    const bs = fits.map(f => f.b).sort((a, b) => a - b);
+    const mean = bs.reduce((a, b) => a + b, 0) / bs.length;
+    const q = p => bs[Math.min(bs.length - 1, Math.floor(p * bs.length))];
+    const width = fits.reduce((a, f) => a + (f.hi - f.lo), 0) / fits.length;
+    const cover = fits.filter(f => f.lo <= BETA && BETA <= f.hi).length / fits.length;
+    const rse = fits.reduce((a, f) => a + f.rse, 0) / fits.length;
+    return { mean, lo: q(0.025), hi: q(0.975), width, cover, rse, bs };
+  }
+
+  // ---------- State ----------
+  // shown: how many rows of the strip chart are revealed (0 = none, 1 = Z left out, 2 = both).
+  const state = { role: "confounder", s: 0.8, n: 300, mystery: null, guessed: false, shown: 0 };
+  let sim, sumW, sumV, jitter;
+
+  function rerun() {
+    sim = simulate(state.role, state.s, state.n);
+    sumW = summarize(sim.without); sumV = summarize(sim.with);
+    jitter = Array.from({ length: NSIM }, () => rng());
+    renderStrips(); renderReadouts(); syncRunBtn();
+  }
+  function syncRunBtn() { $("rerun").textContent = ["Run 300 studies, leaving Z out", "Now put Z in the model", "Run 300 new studies"][state.shown]; }
+
+  // ---------- Controls ----------
+  const roleseg = $("roleseg");
+  ORDER.forEach(k => {
+    const b = document.createElement("button");
+    b.textContent = ROLES[k].short; b.dataset.role = k;
+    b.addEventListener("click", () => { endMystery(); state.role = k; state.shown = 0; syncControls(); rerun(); });
+    roleseg.appendChild(b);
+  });
+  const strengthWord = s => s === 0 ? "none" : s < 0.35 ? "weak" : s < 0.7 ? "medium" : "strong";
+  $("strength").addEventListener("input", e => { state.s = +e.target.value; syncControls(); rerun(); });
+  $("n").addEventListener("input", e => { state.n = +e.target.value; syncControls(); rerun(); });
+  $("rerun").addEventListener("click", () => {
+    if (state.shown === 2) { rerun(); return; }
+    state.shown++;
+    renderStrips(state.shown === 1 ? "without" : "with"); renderReadouts(); syncRunBtn();
+  });
+
+  function syncControls() {
+    const hide = state.mystery && !state.guessed;
+    roleseg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(!hide && b.dataset.role === state.role)));
+    $("strength-out").textContent = strengthWord(state.s);
+    $("strength").disabled = state.role === "noise" && !hide;
+    $("n-out").textContent = state.n;
+    $("rcode").textContent = hide ? "# hidden until you guess" :
+      `n <- ${state.n}   # arrows at full strength\n${ROLES[state.role].r}\n\nconfint(lm(gpa ~ sleep))["sleep", ]       # leave Z out\nconfint(lm(gpa ~ sleep + z))["sleep", ]   # put Z in`;
+    renderDag(); renderStory(); renderTable();
+  }
+
+  // ---------- Theme ----------
+  const themeBtn = $("theme");
+  function setTheme(dark) {
+    if (dark) document.documentElement.setAttribute("data-theme", "dark");
+    else document.documentElement.removeAttribute("data-theme");
+    themeBtn.setAttribute("aria-pressed", String(dark));
+    themeBtn.textContent = dark ? "Light mode" : "Dark mode";
+    try { localStorage.setItem("one-inch-theme", dark ? "dark" : "light"); } catch (e) {}
+  }
+  let savedDark = false;
+  try { savedDark = localStorage.getItem("one-inch-theme") === "dark"; } catch (e) {}
+  setTheme(savedDark);
+  themeBtn.addEventListener("click", () => { setTheme(!document.documentElement.hasAttribute("data-theme")); renderDag(); renderStrips(); });
+
+  // ---------- SVG helpers ----------
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent, text) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  const dims = svg => { const r = svg.getBoundingClientRect(); return { w: Math.max(280, r.width), h: r.height }; };
+
+  // ---------- DAG ----------
+  function renderDag() {
+    const svg = $("dag"); svg.innerHTML = "";
+    const { w, h } = dims(svg);
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    const hide = state.mystery && !state.guessed;
+    const R = ROLES[state.role];
+    const P = { X: [w * 0.16, h * 0.74], Y: [w * 0.84, h * 0.74], Z: [w * 0.5, h * 0.2] };
+    const defs = el("defs", {}, svg);
+    const mk = (id, color) => { const m = el("marker", { id, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 5, markerHeight: 5, orient: "auto-start-reverse" }, defs); el("path", { d: "M0,0 L10,5 L0,10 z", fill: color }, m); };
+    const css = getComputedStyle(document.documentElement);
+    const cTruth = css.getPropertyValue("--truth").trim(), cMuted = css.getPropertyValue("--muted").trim();
+    mk("ah-t", cTruth); mk("ah-m", cMuted);
+    const rad = 34;
+    function arrow(a, b, color, marker, width, dash) {
+      const [x1, y1] = P[a], [x2, y2] = P[b];
+      const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy);
+      const ux = dx / L, uy = dy / L;
+      el("line", { x1: x1 + ux * rad, y1: y1 + uy * rad, x2: x2 - ux * (rad + 4), y2: y2 - uy * (rad + 4), stroke: color, "stroke-width": width, "marker-end": `url(#${marker})`, "stroke-dasharray": dash || "none", "stroke-linecap": "round" }, svg);
+    }
+    // The sleep → GPA arrow is always there; in the mediator world it carries only the direct part.
+    const med = state.role === "mediator" && !hide;
+    const direct = med ? Math.max(0.2, 1 - 0.8 * state.s * state.s) : 1;
+    arrow("X", "Y", cTruth, "ah-t", 2 + 3 * direct);
+    el("text", { x: w / 2, y: h * 0.74 + 22, "text-anchor": "middle", class: "lbl", fill: cTruth }, svg, med ? "direct part of 0.10" : "true effect 0.10");
+    if (!hide) {
+      R.arrows.filter(([a, b]) => !(a === "X" && b === "Y")).forEach(([a, b]) => arrow(a, b, cMuted, "ah-m", 1 + 5 * state.s, state.s === 0 ? "4 5" : null));
+    }
+    const node = (k, label, sub, fill) => {
+      const [x, y] = P[k];
+      el("circle", { cx: x, cy: y, r: rad, fill: "var(--surface)", stroke: fill, "stroke-width": 2.5 }, svg);
+      el("text", { x, y: y + 6, "text-anchor": "middle", style: "font: 800 20px var(--display); fill: var(--ink)" }, svg, label);
+      el("text", { x, y: y + rad + 18, "text-anchor": "middle", class: "tl" }, svg, sub);
+    };
+    node("X", "X", "sleep", "var(--ink)");
+    node("Y", "Y", "term GPA", "var(--ink)");
+    node("Z", "Z", hide ? "???" : R.z, "var(--muted)");
+    if (hide) el("text", { x: w / 2, y: h * 0.2 - rad - 10, "text-anchor": "middle", class: "tt" }, svg, "ARROWS HIDDEN");
+  }
+
+  function renderStory() {
+    const hide = state.mystery && !state.guessed;
+    const R = ROLES[state.role];
+    $("story").innerHTML = hide
+      ? `<span class="tag">Mystery</span><h3>Which arrows does Z have?</h3><p>Use the clouds in Step 2 to decide.</p>`
+      : `<span class="tag">${R.name}</span><h3>Z = ${R.z.toLowerCase()}</h3><p>${R.blurb}</p>`;
+  }
+
+  // ---------- Strips ----------
+  // anim: the row key ("without" / "with") whose dots should drop in, if any.
+  function renderStrips(anim) {
+    const svg = $("strips"); svg.innerHTML = "";
+    const { w, h } = dims(svg);
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    const padL = Math.min(130, w * 0.24), padR = 16, top = 16, bot = 34;
+    // Axis covers only the revealed rows, so it doesn't hint where hidden dots will land.
+    const vis = [sumW.bs, sumV.bs].slice(0, state.shown).flat();
+    let lo = Math.min(-0.05, ...vis), hi = Math.max(0.25, ...vis);
+    const span = hi - lo; lo -= span * 0.04; hi += span * 0.04;
+    const X = v => padL + (v - lo) / (hi - lo) * (w - padL - padR);
+    const rowH = (h - top - bot) / 2;
+    // Ticks
+    const step = (hi - lo) > 0.6 ? 0.1 : (hi - lo) > 0.3 ? 0.05 : 0.025;
+    for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) {
+      el("line", { x1: X(t), x2: X(t), y1: top, y2: h - bot, class: "grid" }, svg);
+      el("text", { x: X(t), y: h - bot + 16, "text-anchor": "middle", class: "tl" }, svg, (Math.abs(t) < 1e-9 ? 0 : t).toFixed(step < 0.05 ? 3 : 2));
+    }
+    el("text", { x: padL + (w - padL - padR) / 2, y: h - 2, "text-anchor": "middle", class: "tt" }, svg, "ESTIMATED SLOPE ON SLEEP (GPA POINTS PER HOUR)");
+    // Zero line
+    if (lo < 0 && hi > 0) el("line", { x1: X(0), x2: X(0), y1: top, y2: h - bot, stroke: "var(--muted)", "stroke-width": 1, "stroke-dasharray": "3 4" }, svg);
+    const rows = [["without", sim.without, sumW, "var(--without)", "gpa ~ sleep"], ["with", sim.with, sumV, "var(--with)", "gpa ~ sleep + z"]];
+    rows.forEach(([key, fits, S, color, label], r) => {
+      const cy = top + rowH * r + rowH / 2;
+      el("text", { x: 0, y: cy - 4, class: "lbl", fill: color }, svg, key === "without" ? "Leave Z out" : "Put Z in");
+      el("text", { x: 0, y: cy + 12, class: "tl" }, svg, label);
+      if (r >= state.shown) {
+        el("text", { x: padL + (w - padL - padR) / 2, y: cy + 4, "text-anchor": "middle", class: "tt" }, svg, r === state.shown ? "PREDICT: WHERE WILL THESE LAND?" : "");
+        return;
+      }
+      const pop = key === anim;
+      fits.forEach((f, i) => el("circle", { cx: X(f.b), cy: cy + (jitter[i] - 0.5) * rowH * 0.62, r: 2.6, fill: color, opacity: 0.45, ...(pop ? { class: "pop", style: `animation-delay:${i * 3}ms` } : {}) }, svg));
+      const late = pop ? { class: "pop", style: "animation-delay:950ms" } : {};
+      el("line", { x1: X(S.lo), x2: X(S.hi), y1: cy + rowH * 0.4, y2: cy + rowH * 0.4, stroke: color, "stroke-width": 3, "stroke-linecap": "round", ...late }, svg);
+      el("circle", { cx: X(S.mean), cy: cy + rowH * 0.4, r: 5, fill: "var(--surface)", stroke: color, "stroke-width": 2.5, ...late }, svg);
+    });
+    el("line", { x1: X(BETA), x2: X(BETA), y1: top - 6, y2: h - bot, stroke: "var(--truth)", "stroke-width": 3 }, svg);
+    el("text", { x: X(BETA), y: top - 9, "text-anchor": "middle", class: "lbl", fill: "var(--truth)" }, svg, "truth");
+  }
+
+  // ---------- Readouts ----------
+  const f3 = v => (v >= 0 ? "" : "−") + Math.abs(v).toFixed(3);
+  const pct = v => Math.round(v * 100) + "%";
+  function renderReadouts() {
+    const fill = (id, S) => {
+      const bias = S.mean - BETA;
+      const bad = Math.abs(bias) > 0.015;
+      $(id).innerHTML = `
+        <dt>Average slope</dt><dd>${f3(S.mean)}</dd>
+        <dt>Bias (avg − 0.10)</dt><dd class="${bad ? "bad" : ""}">${Math.abs(bias) < 0.0005 ? "0.000" : (bias > 0 ? "+" : "−") + Math.abs(bias).toFixed(3)}</dd>
+        <dt>Typical 95% CI width</dt><dd>${S.width.toFixed(3)}</dd>
+        <dt>CIs that catch 0.10</dt><dd class="${S.cover < 0.85 ? "bad" : ""}">${pct(S.cover)}</dd>
+        <dt>Residual SE</dt><dd>${S.rse.toFixed(3)}</dd>`;
+    };
+    const blank = id => { $(id).innerHTML = `<dt>Not run yet</dt><dd>–</dd>`; };
+    state.shown >= 1 ? fill("dl-without", sumW) : blank("dl-without");
+    state.shown >= 2 ? fill("dl-with", sumV) : blank("dl-with");
+    const v = $("verdict");
+    if (state.shown < 2) {
+      v.className = "verdict";
+      v.innerHTML = state.shown === 0
+        ? "<b>Predict first.</b> If we leave Z out, will the orange cloud land on the green truth line, to the right of it, or to the left? Then press the button."
+        : "<b>Now predict:</b> if we put Z in the model, will the cloud move, get narrower, or stay where it is?";
+      return;
+    }
+    if (state.mystery && !state.guessed) { v.className = "verdict"; v.innerHTML = "<b>Verdict hidden.</b> Make your guess in Step 3."; return; }
+    const biasW = Math.abs(sumW.mean - BETA), biasV = Math.abs(sumV.mean - BETA);
+    const narrower = 1 - sumV.width / sumW.width;
+    let html, warn = false;
+    if (state.s === 0 && state.role !== "noise") html = `<b>No arrows, no difference.</b> With Z's arrows turned off, Z is just noise. Drag the slider up.`;
+    else if (state.role === "confounder") html = `<b>Put it in.</b> Leaving Z out is off by ${biasW.toFixed(3)} on average, and ${sumW.cover < 0.005 ? "<i>none</i>" : "only " + pct(sumW.cover)} of those CIs contain the truth. More data won't fix it: try 1,000 students. The orange cloud gets narrower but stays in the wrong place.`;
+    else if (state.role === "precision") html = `<b>Put it in.</b> Both clouds are centered on the truth, but adding Z makes the typical CI ${pct(Math.max(0, narrower))} narrower. Same answer, more certainty.`;
+    else if (state.role === "mediator") { warn = true; html = `<b>Leave it out.</b> The model <i>with</i> Z is the one that misses: it averages ${f3(sumV.mean)}, only the direct part of the effect. The part of sleep's effect that works through the midterm got controlled away. Notice its residual SE is <i>lower</i>: the worse model for explanation looks like the better fit.`; }
+    else if (state.role === "collider") { warn = true; html = `<b>Leave it out.</b> Without Z, the slope is right. Adding Z drags it to ${f3(sumV.mean)}${sumV.mean < 0 ? ", the wrong sign" : ""}. Nothing confounded this relationship until we "controlled" for something caused by the outcome.`; }
+    else html = `<b>Doesn't matter much.</b> Both clouds sit on the truth with nearly identical width. Including Z costs a degree of freedom and buys nothing, but it does no harm.`;
+    v.className = "verdict" + (warn ? " warn" : "");
+    v.innerHTML = html;
+  }
+
+  // ---------- Table ----------
+  function renderTable() {
+    const hide = state.mystery && !state.guessed;
+    const arrowsTxt = { confounder: "Z → X, Z → Y", precision: "Z → Y only", mediator: "X → Z → Y", collider: "X → Z ← Y", noise: "none" };
+    $("tbody").innerHTML = ORDER.map(k => {
+      const R = ROLES[k];
+      const cls = R.tag === "include" ? "yes" : R.tag === "never" ? "no" : "";
+      return `<tr class="${!hide && k === state.role ? "cur" : ""}"><td><b>${R.name}</b></td><td style="font-family:var(--mono);white-space:nowrap">${arrowsTxt[k]}</td><td>${R.example}</td><td class="${cls}">${R.include}</td><td>${R.why}</td></tr>`;
+    }).join("");
+  }
+
+  // ---------- Mystery mode ----------
+  function endMystery() { state.mystery = null; state.guessed = false; $("guesses").hidden = true; $("mys-result").textContent = ""; }
+  $("mys").addEventListener("click", () => {
+    const pool = ORDER.filter(k => k !== state.role);
+    state.role = pool[Math.floor(rng() * pool.length)];
+    state.mystery = state.role; state.guessed = false;
+    state.s = 0.85; $("strength").value = 0.85; state.shown = 2;
+    $("mys-result").textContent = "";
+    const g = $("guesses"); g.hidden = false; g.innerHTML = "";
+    ORDER.forEach(k => {
+      const b = document.createElement("button"); b.textContent = ROLES[k].short;
+      b.addEventListener("click", () => {
+        if (state.guessed) return;
+        state.guessed = true;
+        $("mys-result").innerHTML = k === state.mystery ? `<span class="c-truth">Right: it was a ${ROLES[k].name.toLowerCase()}.</span>` : `<span style="color:var(--bad)">Not quite: it was a ${ROLES[state.mystery].name.toLowerCase()}.</span>`;
+        syncControls(); renderReadouts();
+      });
+      g.appendChild(b);
+    });
+    syncControls(); rerun();
+    document.getElementById("strips").scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  syncControls(); rerun();
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { renderDag(); renderStrips(); }, 120); });
+})();
+</script>
+</body>
+</html>
